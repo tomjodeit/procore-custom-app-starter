@@ -24,7 +24,7 @@ Start from `.env.example` when sharing this package. Set `SESSION_SECRET` to a f
 
 ## Continue on your computer
 
-The Codespace is already running inside the participant's repository; they do not need to create or clone a second repository in GitHub. Before cloning to a personal computer, commit and push the Codespace changes using Source Control, then use **Refresh repository status** in the success panel. Clone commands unlock when the worktree is clean and the branch is synced with its upstream. Participants need Git and Node.js 18 or later installed locally.
+The Codespace is already running inside the participant's repository; they do not need to create or clone a second repository in GitHub. Before cloning to a personal computer, commit and select **Sync Changes** (or **Push**) in Source Control. Use **Refresh repository status** in the success panel afterward. Clone commands unlock when the worktree is clean and the branch is synced with its upstream. Participants need Git and Node.js 18 or later installed locally.
 
 macOS or Linux:
 

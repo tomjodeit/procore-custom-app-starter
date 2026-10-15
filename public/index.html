@@ -123,8 +123,8 @@
           <section class="handoff-option" aria-labelledby="local-handoff-title">
             <p class="eyebrow">RUN IT LOCALLY</p>
             <h3 id="local-handoff-title">Take your repo with you</h3>
-            <a id="repository-link" class="repository-link" href="#" target="_blank" rel="noopener" hidden>Open current repository <span aria-hidden="true">&#8599;</span></a>
-            <p id="repository-status" class="template-instructions">Checking this Codespace’s repository status...</p>
+            <a id="repository-link" class="repository-link" href="#" target="_blank" rel="noopener" hidden>Open <span id="repository-name">current repository</span> <span aria-hidden="true">&#8599;</span></a>
+            <p id="repository-status" class="template-instructions" role="status" aria-live="polite">Checking this Codespace’s repository status...</p>
             <button id="refresh-repository-status" class="copy-context refresh-repository-status" type="button">Refresh repository status</button>
             <label class="field-label" for="clone-repository-url">Current repository</label>
             <input id="clone-repository-url" type="url" placeholder="Detecting GitHub origin..." autocomplete="url" readonly>

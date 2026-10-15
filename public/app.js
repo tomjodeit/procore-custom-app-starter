@@ -16,6 +16,7 @@ const copyCopilotPromptButton = document.querySelector('#copy-copilot-prompt');
 const copilotCopyStatus = document.querySelector('#copilot-copy-status');
 const cloneRepositoryUrl = document.querySelector('#clone-repository-url');
 const repositoryLink = document.querySelector('#repository-link');
+const repositoryName = document.querySelector('#repository-name');
 const repositoryStatus = document.querySelector('#repository-status');
 const refreshRepositoryStatusButton = document.querySelector('#refresh-repository-status');
 const cloneCommandOutput = document.querySelector('#clone-command-output');
@@ -194,12 +195,13 @@ function updateCloneCommands() {
 }
 
 async function loadRepositoryHandoff() {
-  repositoryStatus.textContent = 'Checking this Codespace’s repository status...';
+  setRepositoryStatus('Checking this Codespace’s repository status...', 'checking');
   refreshRepositoryStatusButton.disabled = true;
   try {
     repositoryContext = await getJson('/api/repository');
     if (repositoryContext.repositoryUrl) {
       repositoryLink.href = repositoryContext.repositoryUrl;
+      repositoryName.textContent = new URL(repositoryContext.repositoryUrl).pathname.split('/').filter(Boolean).pop();
       repositoryLink.hidden = false;
       cloneRepositoryUrl.value = repositoryContext.repositoryUrl;
     } else {
@@ -208,22 +210,28 @@ async function loadRepositoryHandoff() {
     }
 
     if (repositoryContext.hasUncommittedChanges) {
-      repositoryStatus.textContent = 'Commit and push your Codespace changes first. Refresh here after Source Control shows a clean, synced repo.';
+      setRepositoryStatus('Uncommitted Codespace changes. In Source Control, commit them and select Sync Changes or Push. Refresh here afterward.', 'warning');
     } else if (!repositoryContext.hasUpstream || repositoryContext.ahead > 0) {
-      repositoryStatus.textContent = 'Push or sync your latest Codespace commit to GitHub before cloning locally.';
+      setRepositoryStatus('Your latest commit is only in this Codespace. In Source Control, select Sync Changes or Push. Refresh here after it reaches GitHub.', 'warning');
     } else if (repositoryContext.behind > 0) {
-      repositoryStatus.textContent = 'Pull or sync GitHub changes into this Codespace before cloning locally.';
+      setRepositoryStatus('This Codespace is behind GitHub. In Source Control, pull or sync the latest changes, then refresh here.', 'warning');
     } else {
-      repositoryStatus.textContent = 'This is the repo running your Codespace. It is committed and synced, ready to clone locally.';
+      setRepositoryStatus('This Codespace is committed and synced with GitHub. The same repo is ready to clone locally.', 'ready');
     }
     updateCloneCommands();
   } catch (error) {
     repositoryContext = null;
-    repositoryStatus.textContent = error.message;
+    setRepositoryStatus(error.message, 'warning');
     updateCloneCommands();
   } finally {
     refreshRepositoryStatusButton.disabled = false;
   }
+}
+
+function setRepositoryStatus(message, state) {
+  repositoryStatus.textContent = message;
+  repositoryStatus.classList.toggle('is-warning', state === 'warning');
+  repositoryStatus.classList.toggle('is-ready', state === 'ready');
 }
 
 refreshRepositoryStatusButton.addEventListener('click', loadRepositoryHandoff);

@@ -222,7 +222,9 @@ select:disabled { color: #909991; background: #f7f8f5; }
 .handoff-option .search-button { width: 100%; margin-top: 9px; }
 .repository-link { display: inline-block; margin: -4px 0 12px; color: var(--brand-strong); font-size: 11px; font-weight: 700; text-decoration: none; }
 .repository-link span { margin-left: 3px; }
-.template-instructions { margin: -5px 0 10px; color: #52634c; font-size: 10px; line-height: 1.45; }
+.template-instructions { margin: -5px 0 10px; padding: 9px 11px; border-left: 3px solid transparent; border-radius: 0 4px 4px 0; color: #52634c; font-size: 11px; line-height: 1.5; }
+.template-instructions.is-warning { border-left-color: #c27a00; background: #fff1d6; color: #684300; font-weight: 600; }
+.template-instructions.is-ready { border-left-color: var(--green); background: #edf7ef; color: #235b43; }
 .refresh-repository-status { min-height: 28px; margin: -4px 0 10px; padding: 0 9px; font-size: 10px; }
 .refresh-repository-status:disabled { cursor: wait; opacity: 0.6; }
 .handoff-option input[type="url"] { min-height: 38px; margin-bottom: 10px; font-size: 11px; }

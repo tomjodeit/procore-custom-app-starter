@@ -2,7 +2,6 @@ const statusPill = document.querySelector('#connection-status');
 const connectButton = document.querySelector('#connect-button');
 const oauthInstructions = document.querySelector('#oauth-instructions');
 const connectedDetails = document.querySelector('#connected-details');
-const codeEntryLink = document.querySelector('#code-entry-link');
 const codeEntryForm = document.querySelector('#code-entry-form');
 const codeEntryFeedback = document.querySelector('#code-entry-feedback');
 const codeEntryStatus = document.querySelector('#code-entry-status');
@@ -16,6 +15,9 @@ const buildGoalInput = document.querySelector('#build-goal');
 const copyCopilotPromptButton = document.querySelector('#copy-copilot-prompt');
 const copilotCopyStatus = document.querySelector('#copilot-copy-status');
 const cloneRepositoryUrl = document.querySelector('#clone-repository-url');
+const repositoryLink = document.querySelector('#repository-link');
+const repositoryStatus = document.querySelector('#repository-status');
+const refreshRepositoryStatusButton = document.querySelector('#refresh-repository-status');
 const cloneCommandOutput = document.querySelector('#clone-command-output');
 const copyCloneCommandsButton = document.querySelector('#copy-clone-commands');
 const cloneCopyStatus = document.querySelector('#clone-copy-status');
@@ -26,24 +28,41 @@ const catalogStatus = document.querySelector('#catalog-status');
 const catalogResults = document.querySelector('#catalog-results');
 const steps = [...document.querySelectorAll('.progress-step')];
 let selectedPlatform = 'unix';
-
-connectButton.addEventListener('click', () => {
-  oauthInstructions.hidden = false;
-  codeEntryLink.hidden = false;
-});
+let repositoryContext = null;
 
 function openCodeEntry() {
-  codeEntryLink.hidden = true;
   codeEntryFeedback.hidden = true;
   codeEntryForm.hidden = false;
   codeEntryForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   codeEntryForm.querySelector('input').focus({ preventScroll: true });
 }
 
-codeEntryLink.addEventListener('click', event => {
+function openAuthorizationPopup() {
+  const popup = window.open(
+    connectButton.href,
+    'procore-sandbox-authorization',
+    'popup=yes,width=1000,height=760,resizable=yes,scrollbars=yes'
+  );
+  if (!popup) return false;
+
+  popup.opener = null;
+  window.focus();
+  return true;
+}
+
+function launchAuthorization(event) {
   event.preventDefault();
   openCodeEntry();
-});
+  oauthInstructions.hidden = false;
+  oauthInstructions.textContent = 'Procore is opening in a separate window. Approve access, then paste the code in the ready field below.';
+
+  if (!openAuthorizationPopup()) {
+    oauthInstructions.textContent = 'Your browser blocked the authorization window. Allow pop-ups for this site, then select Connect to Sandbox again.';
+  }
+}
+
+connectButton.addEventListener('click', launchAuthorization);
+codeEntryRetry.addEventListener('click', launchAuthorization);
 
 if (location.hash === '#code-entry') openCodeEntry();
 
@@ -88,10 +107,10 @@ async function activateConnectedSession() {
   connectedDetails.hidden = false;
   connectButton.hidden = true;
   oauthInstructions.hidden = true;
-  codeEntryLink.hidden = true;
   codeEntryForm.hidden = true;
   codeEntryFeedback.hidden = true;
   setStep('explore');
+  await loadRepositoryHandoff();
   await loadCompanies();
 }
 
@@ -116,6 +135,9 @@ function createCopilotKickoff() {
 }
 
 function getCloneCommands() {
+  if (!repositoryContext?.repositoryUrl || repositoryContext.hasUncommittedChanges || !repositoryContext.hasUpstream || repositoryContext.ahead > 0 || repositoryContext.behind > 0) {
+    return null;
+  }
   const value = cloneRepositoryUrl.value.trim();
   let repositoryUrl;
   try {
@@ -136,10 +158,75 @@ function getCloneCommands() {
 }
 
 function updateCloneCommands() {
+  if (!repositoryContext) {
+    cloneCommandOutput.textContent = 'Checking this Codespace’s Git status...';
+    copyCloneCommandsButton.disabled = true;
+    return;
+  }
+
+  if (!repositoryContext.repositoryUrl) {
+    cloneCommandOutput.textContent = 'No GitHub origin found. Open this Codespace from your GitHub repository.';
+    copyCloneCommandsButton.disabled = true;
+    return;
+  }
+
+  if (repositoryContext.hasUncommittedChanges) {
+    cloneCommandOutput.textContent = 'Commit and push your Codespace changes from Source Control first. Then refresh repository status.';
+    copyCloneCommandsButton.disabled = true;
+    return;
+  }
+
+  if (!repositoryContext.hasUpstream || repositoryContext.ahead > 0) {
+    cloneCommandOutput.textContent = 'Push or sync your latest Codespace commit to GitHub first. Then refresh repository status.';
+    copyCloneCommandsButton.disabled = true;
+    return;
+  }
+
+  if (repositoryContext.behind > 0) {
+    cloneCommandOutput.textContent = 'Pull or sync the latest GitHub changes into this Codespace before cloning.';
+    copyCloneCommandsButton.disabled = true;
+    return;
+  }
+
   const commands = getCloneCommands();
-  cloneCommandOutput.textContent = commands || 'Paste your new GitHub repository HTTPS URL above.';
+  cloneCommandOutput.textContent = commands || 'Could not prepare clone commands for this repository.';
   copyCloneCommandsButton.disabled = !commands;
 }
+
+async function loadRepositoryHandoff() {
+  repositoryStatus.textContent = 'Checking this Codespace’s repository status...';
+  refreshRepositoryStatusButton.disabled = true;
+  try {
+    repositoryContext = await getJson('/api/repository');
+    if (repositoryContext.repositoryUrl) {
+      repositoryLink.href = repositoryContext.repositoryUrl;
+      repositoryLink.hidden = false;
+      cloneRepositoryUrl.value = repositoryContext.repositoryUrl;
+    } else {
+      repositoryLink.hidden = true;
+      cloneRepositoryUrl.value = '';
+    }
+
+    if (repositoryContext.hasUncommittedChanges) {
+      repositoryStatus.textContent = 'Commit and push your Codespace changes first. Refresh here after Source Control shows a clean, synced repo.';
+    } else if (!repositoryContext.hasUpstream || repositoryContext.ahead > 0) {
+      repositoryStatus.textContent = 'Push or sync your latest Codespace commit to GitHub before cloning locally.';
+    } else if (repositoryContext.behind > 0) {
+      repositoryStatus.textContent = 'Pull or sync GitHub changes into this Codespace before cloning locally.';
+    } else {
+      repositoryStatus.textContent = 'This is the repo running your Codespace. It is committed and synced, ready to clone locally.';
+    }
+    updateCloneCommands();
+  } catch (error) {
+    repositoryContext = null;
+    repositoryStatus.textContent = error.message;
+    updateCloneCommands();
+  } finally {
+    refreshRepositoryStatusButton.disabled = false;
+  }
+}
+
+refreshRepositoryStatusButton.addEventListener('click', loadRepositoryHandoff);
 
 copyCopilotPromptButton.addEventListener('click', async () => {
   try {

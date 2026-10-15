@@ -44,13 +44,12 @@
           </div>
           <h2>Sandbox access</h2>
           <p class="panel-copy">Connect with the Sandbox credentials configured for your app.</p>
-          <a id="connect-button" class="primary-button" href="/login" target="_blank" rel="noopener">Connect to Sandbox <span aria-hidden="true">&#8599;</span></a>
-          <p id="oauth-instructions" class="oauth-instructions" hidden>Procore opened in a new tab. Approve access, copy the authorization code, then return here and enter it.</p>
+          <a id="connect-button" class="primary-button" href="/login">Connect to Sandbox <span aria-hidden="true">&#8599;</span></a>
+          <p id="oauth-instructions" class="oauth-instructions" hidden>Procore is opening in a separate window. Approve access, then paste the code in the ready field below.</p>
           <div id="connected-details" class="connected-details" hidden>
             <span class="connected-check" aria-hidden="true">&#10003;</span>
             <p>Authorization complete.<br><strong>Your token stays on this server.</strong></p>
           </div>
-          <a id="code-entry-link" class="text-link" href="#code-entry" hidden>Continue to code entry <span aria-hidden="true">&#8594;</span></a>
           <form id="code-entry-form" class="code-entry-form" action="/oauth/code" method="post" hidden>
             <label class="field-label" for="authorization-code">Authorization code from Procore</label>
             <input id="authorization-code" name="code" autocomplete="one-time-code" required>
@@ -58,7 +57,7 @@
           </form>
           <div id="code-entry-feedback" class="code-entry-feedback" aria-live="polite" hidden>
             <p id="code-entry-status" class="code-entry-status" role="status"></p>
-            <a id="code-entry-retry" class="text-link" href="/login" target="_blank" rel="noopener" hidden>Start a new authorization <span aria-hidden="true">&#8599;</span></a>
+            <a id="code-entry-retry" class="text-link" href="/login" hidden>Start a new authorization <span aria-hidden="true">&#8599;</span></a>
           </div>
         </aside>
 
@@ -124,15 +123,16 @@
           <section class="handoff-option" aria-labelledby="local-handoff-title">
             <p class="eyebrow">RUN IT LOCALLY</p>
             <h3 id="local-handoff-title">Take your repo with you</h3>
-            <a class="repository-link" href="https://github.com/tomjodeit/mycustomapp" target="_blank" rel="noopener">Open starter repository <span aria-hidden="true">&#8599;</span></a>
-            <p class="template-instructions">Choose <strong>Use this template</strong> to create your own repo, then paste its HTTPS URL below.</p>
-            <label class="field-label" for="clone-repository-url">Paste the HTTPS URL of your new repository</label>
-            <input id="clone-repository-url" type="url" placeholder="https://github.com/you/your-app.git" autocomplete="url">
+            <a id="repository-link" class="repository-link" href="#" target="_blank" rel="noopener" hidden>Open current repository <span aria-hidden="true">&#8599;</span></a>
+            <p id="repository-status" class="template-instructions">Checking this Codespace’s repository status...</p>
+            <button id="refresh-repository-status" class="copy-context refresh-repository-status" type="button">Refresh repository status</button>
+            <label class="field-label" for="clone-repository-url">Current repository</label>
+            <input id="clone-repository-url" type="url" placeholder="Detecting GitHub origin..." autocomplete="url" readonly>
             <div class="platform-picker" role="group" aria-label="Choose terminal">
               <button class="platform-choice is-selected" type="button" data-platform="unix" aria-pressed="true">macOS / Linux</button>
               <button class="platform-choice" type="button" data-platform="powershell" aria-pressed="false">Windows PowerShell</button>
             </div>
-            <pre class="clone-commands"><code id="clone-command-output">Create your repo from the template, then paste its HTTPS URL above.</code></pre>
+            <pre class="clone-commands"><code id="clone-command-output">Checking this Codespace’s Git status...</code></pre>
             <button id="copy-clone-commands" class="copy-context" type="button" disabled>Copy setup commands</button>
             <p class="local-run-note">After adding your Sandbox credentials to `.env`, run `npm start` on your computer.</p>
             <p id="clone-copy-status" class="handoff-status" role="status"></p>

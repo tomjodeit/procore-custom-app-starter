@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const express = require('express');
 const session = require('express-session');
@@ -27,6 +28,51 @@ function getRedirectUri(req) {
     return `http://localhost:${port}/oauth/callback`;
   }
   return null;
+}
+
+function normalizeGitHubRemote(remote) {
+  const sshMatch = remote.match(/^(?:git@github\.com:|ssh:\/\/git@github\.com\/)([^/]+)\/([^/]+?)(?:\.git)?$/i);
+  if (sshMatch) return `https://github.com/${sshMatch[1]}/${sshMatch[2]}`;
+
+  try {
+    const url = new URL(remote);
+    const [owner, repository] = url.pathname.replace(/^\//, '').split('/');
+    if (url.protocol !== 'https:' || url.hostname !== 'github.com' || !owner || !repository) return null;
+    return `https://github.com/${owner}/${repository.replace(/\.git$/, '')}`;
+  } catch {
+    return null;
+  }
+}
+
+function getRepositoryStatus() {
+  let repositoryUrl = null;
+  let statusLines = [];
+  try {
+    const remote = execFileSync('git', ['remote', 'get-url', 'origin'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    repositoryUrl = normalizeGitHubRemote(remote);
+    statusLines = execFileSync('git', ['status', '--short', '--branch'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim().split(/\r?\n/).filter(Boolean);
+  } catch {
+    return { repositoryUrl, hasUncommittedChanges: false, hasUpstream: false, ahead: 0, behind: 0 };
+  }
+
+  const branchStatus = statusLines[0] || '';
+  const ahead = Number(branchStatus.match(/\[ahead (\d+)/)?.[1] || 0);
+  const behind = Number(branchStatus.match(/\[behind (\d+)/)?.[1] || 0);
+  return {
+    repositoryUrl,
+    hasUncommittedChanges: statusLines.length > 1,
+    hasUpstream: branchStatus.includes('...'),
+    ahead,
+    behind
+  };
 }
 
 app.set('trust proxy', 1);
@@ -106,6 +152,13 @@ app.get('/api/session', (req, res) => {
     environment: 'Sandbox',
     expiresIn: token?.expires_in || null
   });
+});
+
+app.get('/api/repository', (req, res) => {
+  if (!req.session.procoreToken?.access_token) {
+    return res.status(401).json({ error: 'Connect to the Procore Sandbox first.' });
+  }
+  res.json(getRepositoryStatus());
 });
 
 app.get('/api/companies', async (req, res) => {

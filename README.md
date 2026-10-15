@@ -1,4 +1,4 @@
-# Procore Sandbox Workshop
+# Procore Custom App Starter
 
 A reusable quick start for creating a Procore custom app, connecting it to a Developer Sandbox, and verifying access to company and project data. The app uses an authorization-code flow, keeps credentials and access tokens on the server, and performs read-only API checks.
 

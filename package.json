@@ -1,0 +1,16 @@
+{
+  "name": "procore-oauth-local-starter",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --check lib/procore-oas.js && node --check scripts/procore-oas.js",
+    "api:search": "node scripts/procore-oas.js",
+    "api:download": "node scripts/procore-oas.js --download"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}

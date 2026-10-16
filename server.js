@@ -7,6 +7,7 @@ const express = require('express');
 const session = require('express-session');
 const { OPENAPI_URL, searchOperations } = require('./lib/procore-oas');
 const { createEventLog, createWebhookHandler } = require('./lib/webhook');
+const webhookHooks = require('./lib/webhook-hooks');
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -306,7 +307,101 @@ app.get('/api/webhook-events', (req, res) => {
   if (!req.session.procoreToken) {
     return res.status(401).json({ error: 'Connect to the Procore Sandbox first.' });
   }
-  res.json({ enabled: Boolean(webhookSecret), listenerUrl: getWebhookListenerUrl(), events: webhookLog.list() });
+  res.json({
+    enabled: Boolean(webhookSecret),
+    listenerUrl: getWebhookListenerUrl(),
+    hook: req.session.webhookHook || null,
+    events: webhookLog.list()
+  });
+});
+
+// Registers (and removes) the bonus webhook from the dashboard. Nothing is sent to Procore without
+// `confirm: true`, and only the hook this session created can be deleted.
+function webhookHookGuard(req, res) {
+  if (!req.session.procoreToken) {
+    res.status(401).json({ error: 'Connect to the Procore Sandbox first.' });
+    return false;
+  }
+  if (!webhookSecret) {
+    res.status(400).json({ error: 'Set WEBHOOK_SECRET and restart to enable the webhook bonus.' });
+    return false;
+  }
+  return true;
+}
+
+function describeProcoreFailure(result, action) {
+  const detail = [result.data?.message, result.data?.error, result.data?.errors && JSON.stringify(result.data.errors)]
+    .filter(value => typeof value === 'string' && value)[0];
+  const hint = result.status === 403 || result.status === 401
+    ? ' Check that the app\'s Webhooks API permission is set to Standard in the Developer Portal.'
+    : '';
+  return `${action} failed (${result.status}${detail ? `: ${detail.slice(0, 300)}` : ''}).${hint}`;
+}
+
+app.get('/api/webhook-hook/preview', (req, res) => {
+  if (!webhookHookGuard(req, res)) return;
+  try {
+    res.json(webhookHooks.describeCreateHook({
+      companyId: String(req.query.company_id || ''),
+      projectId: String(req.query.project_id || ''),
+      listenerUrl: getWebhookListenerUrl()
+    }));
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/webhook-hook', express.json({ limit: '4kb' }), async (req, res) => {
+  if (!webhookHookGuard(req, res)) return;
+  const companyId = String(req.body?.company_id || '');
+  const projectId = String(req.body?.project_id || '');
+  if (req.body?.confirm !== true) {
+    return res.status(400).json({ error: 'Tick the confirmation box to create the webhook.' });
+  }
+  const listenerUrl = getWebhookListenerUrl();
+  const urlProblem = webhookHooks.validateListenerUrl(listenerUrl);
+  if (urlProblem) return res.status(400).json({ error: urlProblem });
+
+  try {
+    const hookRequest = webhookHooks.buildCreateHookRequest({ companyId, projectId, listenerUrl, secret: webhookSecret });
+    const hookResult = await procoreRequest(req, hookRequest.endpoint, { companyId, method: 'POST', body: hookRequest.body });
+    const hookId = String(hookResult.data?.data?.id || '');
+    if (hookResult.status >= 300 || !hookId) {
+      return res.status(502).json({ error: describeProcoreFailure(hookResult, 'Creating the webhook') });
+    }
+    req.session.webhookHook = { companyId, projectId, hookId };
+
+    const triggerRequest = webhookHooks.buildCreateTriggersRequest({ companyId, projectId, hookId });
+    const triggerResult = await procoreRequest(req, triggerRequest.endpoint, { companyId, method: 'POST', body: triggerRequest.body });
+    if (triggerResult.status >= 300) {
+      return res.status(502).json({
+        hookId,
+        error: `${describeProcoreFailure(triggerResult, 'Adding triggers')} The hook was created without triggers; delete it and try again.`
+      });
+    }
+    res.status(201).json({ hookId, triggerCount: webhookHooks.DEFAULT_TRIGGERS.length });
+  } catch (error) {
+    console.error('Webhook registration failed:', error);
+    res.status(502).json({ error: 'Could not register the webhook. Check the server log.' });
+  }
+});
+
+app.delete('/api/webhook-hook', async (req, res) => {
+  if (!webhookHookGuard(req, res)) return;
+  const hook = req.session.webhookHook;
+  if (!hook) return res.status(404).json({ error: 'This session has not created a webhook.' });
+  try {
+    const request = webhookHooks.buildDeleteHookRequest(hook);
+    const result = await procoreRequest(req, request.endpoint, { companyId: hook.companyId, method: 'DELETE' });
+    if (result.status >= 300 && result.status !== 404) {
+      return res.status(502).json({ error: describeProcoreFailure(result, 'Deleting the webhook') });
+    }
+    delete req.session.webhookHook;
+    res.json({ deleted: true });
+  } catch (error) {
+    console.error('Webhook delete failed:', error);
+    res.status(502).json({ error: 'Could not delete the webhook. Check the server log.' });
+  }
 });
 
 app.listen(port, () => {

@@ -140,6 +140,15 @@
         <p class="template-instructions">Point a Sandbox webhook at this URL (see the README), then change something in Procore.</p>
         <label class="field-label" for="webhook-url">Listener URL</label>
         <input id="webhook-url" type="text" readonly>
+        <label class="field-label" for="webhook-project">Project to watch</label>
+        <select id="webhook-project" disabled>
+          <option value="">Select a company above first</option>
+        </select>
+        <pre class="clone-commands"><code id="webhook-preview">Choose a project to preview the request.</code></pre>
+        <label class="webhook-confirm"><input id="webhook-confirm" type="checkbox"> Create this webhook in my Sandbox project</label>
+        <button id="webhook-create" class="search-button" type="button" disabled>Create webhook</button>
+        <button id="webhook-delete" class="copy-context" type="button" hidden>Delete webhook</button>
+        <p id="webhook-status" class="handoff-status" role="status"></p>
         <ul id="webhook-events" class="webhook-events"></ul>
         <p id="webhook-empty" class="empty-state">Waiting for events...</p>
       </section>

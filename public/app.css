@@ -296,3 +296,5 @@ select:disabled { color: #909991; background: #f7f8f5; }
 .webhook-panel { margin: 18px 0; padding: 16px; border: 1px solid #c9d5aa; border-radius: 6px; background: rgba(255, 255, 255, 0.6); }
 .webhook-panel input { width: 100%; font-size: 11px; }
 .webhook-events { margin: 10px 0 0; padding: 0; list-style: none; font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.7; }
+.webhook-confirm { display: flex; gap: 8px; align-items: center; margin: 8px 0; font-size: 12px; }
+.webhook-panel select { width: 100%; margin-bottom: 8px; }

@@ -75,7 +75,7 @@ The workshop app runs in a Codespace or on localhost only. When you are ready to
 
 The main exercise has your app write to Procore. This bonus flips it: your app listens while you change things in Procore, and the dashboard shows each event as it happens. It needs no create permission and no spreadsheet, which makes it a low-friction alternative to creating projects from a list. Background reading: [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api).
 
-**What the starter gives you.** An optional listener that runs only when `WEBHOOK_SECRET` is set. It runs on its own port (3002) so that port can be public while the dashboard on 3001 stays private. It accepts only `POST /webhooks/procore`, checks the shared secret, validates the v4.0 payload, ignores duplicate events, replies `204` immediately, and keeps the last 50 events in memory for the dashboard's "Live events" panel. Run its tests with `npm test`.
+**What the starter gives you.** An optional listener that runs only when `WEBHOOK_SECRET` is set. It runs on its own port (3002) so that port can be public while the dashboard on 3001 stays private. It accepts only `POST /webhooks/procore`, checks the shared secret, validates the v4.0 payload, ignores duplicate events, replies `204` immediately, and keeps the last 50 events in memory for the dashboard's "Live events" panel, which can also create and delete the Sandbox hook for you. Run its tests with `npm test`.
 
 ### 1. Turn the listener on
 
@@ -89,9 +89,13 @@ The main exercise has your app write to Procore. This bonus flips it: your app l
 
    Do not make port 3001 public. Public ports are reachable by anyone with the URL, so the secret header is what protects 3002. If the Codespace restarts, check that port 3002 is still Public.
 
-### 2. Create a project webhook in the Sandbox
+### 2. Create the webhook from the dashboard
 
-Procore's web UI creates a hook with the same API calls shown below, so you can use the project's Webhooks tool, or send the calls yourself. The listener requires the secret header, so if the UI doesn't let you set one, use the API. The app needs the **Webhooks API** permission set to **Standard** in the Developer Portal. Replace the placeholders with your own IDs:
+Connect to the Sandbox, choose a company, and the "Live events" panel appears (only when `WEBHOOK_SECRET` is set). Pick a project, read the request preview (the secret is hidden), tick the confirmation box, and select **Create webhook**. The app then makes two calls: it creates the hook pointing at your listener URL, and adds the triggers in the table below. It sends nothing until you confirm, and **Delete webhook** removes the hook it created, so you can clean up the Sandbox from the same screen.
+
+The app needs the **Webhooks API** permission set to **Standard** in the Developer Portal (the default is None), and port 3002 must be Public. If either is missing, the panel shows Procore's error plus a hint.
+
+**Prefer to do it by hand?** Procore's web UI creates a hook with the same API calls, so you can use the project's Webhooks tool. The listener requires the secret header, so if the UI doesn't let you set one, send the calls yourself. Replace the placeholders with your own IDs and send the `Procore-Company-Id` header:
 
 ```
 POST /rest/v2.0/companies/{company_id}/projects/{project_id}/webhooks/hooks
@@ -109,7 +113,7 @@ POST /rest/v2.0/companies/{company_id}/projects/{project_id}/webhooks/hooks/{hoo
 ]
 ```
 
-Send the `Procore-Company-Id` header on both. The hook response wraps the hook in `data` and returns its `id` as a string. `namespace` accepts lowercase letters, digits, and dashes. Company-level hooks use the same paths without `/projects/{project_id}`.
+The hook response wraps the hook in `data` and returns its `id` as a string. `namespace` accepts lowercase letters, digits, and dashes. Company-level hooks use the same paths without `/projects/{project_id}`.
 
 ### 3. Pick easy triggers
 
@@ -122,7 +126,7 @@ These need no setup beyond a sandbox project, and each is a click away in the Pr
 | Upload a file in Documents | `Project Files` (`create`), `Project File Versions` (`create`) |
 | Create, rename, or delete a folder | `Project Folders` (`create`, `update`, `delete`) |
 
-Make the change, and within a few seconds a row appears in "Live events". Keep triggers to what you need: each one adds noise, and an `update` trigger fires on any edit.
+Make the change, and within a few seconds a row appears in "Live events". The dashboard registers all of these triggers for the project. Keep triggers to what you need in your own apps: each one adds noise, and an `update` trigger fires on any edit.
 
 ### Good to know
 

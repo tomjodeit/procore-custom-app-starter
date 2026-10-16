@@ -30,6 +30,14 @@ const webhookPanel = document.querySelector('#webhook-panel');
 const webhookUrl = document.querySelector('#webhook-url');
 const webhookEvents = document.querySelector('#webhook-events');
 const webhookEmpty = document.querySelector('#webhook-empty');
+const webhookProject = document.querySelector('#webhook-project');
+const webhookPreview = document.querySelector('#webhook-preview');
+const webhookConfirm = document.querySelector('#webhook-confirm');
+const webhookCreate = document.querySelector('#webhook-create');
+const webhookDelete = document.querySelector('#webhook-delete');
+const webhookStatus = document.querySelector('#webhook-status');
+let loadedProjects = [];
+let currentHook = null;
 let repositoryContext = null;
 
 function openCodeEntry() {
@@ -334,6 +342,8 @@ async function loadProjects(companyId, companyName) {
   try {
     const data = await getJson(`/api/projects?company_id=${encodeURIComponent(companyId)}`);
     const projects = Array.isArray(data) ? data : data.projects || [];
+    loadedProjects = projects;
+    fillWebhookProjects(companyId);
     projectCount.textContent = String(projects.length);
     projectList.replaceChildren();
 
@@ -436,10 +446,16 @@ initialize();
 // Bonus exercise: show events received by the optional webhook listener (see the README).
 async function loadWebhookEvents() {
   try {
-    const { enabled, listenerUrl, events } = await getJson('/api/webhook-events');
+    const { enabled, listenerUrl, hook, events } = await getJson('/api/webhook-events');
     webhookPanel.hidden = !enabled;
     if (!enabled) return;
     webhookUrl.value = listenerUrl;
+    const hadHook = Boolean(currentHook);
+    currentHook = hook;
+    renderHookControls();
+    if (hook && !hadHook && !webhookStatus.textContent) {
+      webhookStatus.textContent = `Webhook ${hook.hookId} is active. Make a change in Procore and watch for events below.`;
+    }
     webhookEvents.replaceChildren(...events.map(event => {
       const item = document.createElement('li');
       item.textContent = `${event.receivedAt.slice(11, 19)}  ${event.resourceType}  ${event.reason}  (id ${event.resourceId || 'n/a'}, project ${event.projectId || 'n/a'})`;
@@ -451,3 +467,82 @@ async function loadWebhookEvents() {
     webhookPanel.hidden = true;
   }
 }
+
+// Registering the bonus webhook from the dashboard. Nothing is sent until the box is ticked and the button clicked.
+let webhookCompanyId = '';
+
+function fillWebhookProjects(companyId) {
+  webhookCompanyId = companyId;
+  webhookProject.replaceChildren(new Option('Select a project', ''));
+  loadedProjects.forEach(project => webhookProject.add(new Option(project.name || `Project ${project.id}`, project.id)));
+  webhookProject.disabled = loadedProjects.length === 0;
+  webhookPreview.textContent = 'Choose a project to preview the request.';
+  updateWebhookCreateState();
+}
+
+function renderHookControls() {
+  webhookDelete.hidden = !currentHook;
+  updateWebhookCreateState();
+}
+
+function updateWebhookCreateState() {
+  webhookCreate.disabled = !(webhookCompanyId && webhookProject.value && webhookConfirm.checked) || Boolean(currentHook);
+}
+
+webhookProject.addEventListener('change', async () => {
+  webhookConfirm.checked = false;
+  updateWebhookCreateState();
+  if (!webhookProject.value) {
+    webhookPreview.textContent = 'Choose a project to preview the request.';
+    return;
+  }
+  try {
+    const preview = await getJson(`/api/webhook-hook/preview?company_id=${encodeURIComponent(webhookCompanyId)}&project_id=${encodeURIComponent(webhookProject.value)}`);
+    webhookPreview.textContent = `${preview.hook.method} ${preview.hook.endpoint}\n${JSON.stringify(preview.hook.body, null, 2)}\n\nThen add ${preview.triggers.length} triggers:\n` +
+      [...new Set(preview.triggers.map(trigger => trigger.resource_name))].join(', ');
+  } catch (error) {
+    webhookPreview.textContent = error.message;
+  }
+});
+
+webhookConfirm.addEventListener('change', updateWebhookCreateState);
+
+webhookCreate.addEventListener('click', async () => {
+  webhookCreate.disabled = true;
+  webhookStatus.textContent = 'Creating webhook...';
+  try {
+    const response = await fetch('/api/webhook-hook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ company_id: webhookCompanyId, project_id: webhookProject.value, confirm: webhookConfirm.checked })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (body.hookId) currentHook = { hookId: body.hookId };
+      throw new Error(body.error || `Request failed (${response.status}).`);
+    }
+    currentHook = { hookId: body.hookId };
+    webhookConfirm.checked = false;
+    webhookStatus.textContent = `Webhook ${body.hookId} created with ${body.triggerCount} triggers. Make a change in Procore and watch for events below.`;
+    renderHookControls();
+  } catch (error) {
+    renderHookControls();
+    webhookStatus.textContent = error.message;
+  }
+});
+
+webhookDelete.addEventListener('click', async () => {
+  webhookDelete.disabled = true;
+  try {
+    const response = await fetch('/api/webhook-hook', { method: 'DELETE', headers: { Accept: 'application/json' } });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || `Request failed (${response.status}).`);
+    currentHook = null;
+    webhookStatus.textContent = 'Webhook deleted from your Sandbox project.';
+    renderHookControls();
+  } catch (error) {
+    webhookStatus.textContent = error.message;
+  } finally {
+    webhookDelete.disabled = false;
+  }
+});

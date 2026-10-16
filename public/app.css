@@ -228,9 +228,6 @@ select:disabled { color: #909991; background: #f7f8f5; }
 .refresh-repository-status { min-height: 28px; margin: -4px 0 10px; padding: 0 9px; font-size: 10px; }
 .refresh-repository-status:disabled { cursor: wait; opacity: 0.6; }
 .handoff-option input[type="url"] { min-height: 38px; margin-bottom: 10px; font-size: 11px; }
-.platform-picker { display: flex; width: fit-content; margin-bottom: 8px; padding: 3px; border: 1px solid #c9d5aa; border-radius: 5px; background: rgba(255, 255, 255, 0.6); }
-.platform-choice { min-height: 28px; padding: 0 9px; border: 0; border-radius: 3px; background: transparent; color: var(--muted); font: inherit; font-size: 10px; cursor: pointer; }
-.platform-choice.is-selected { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px rgba(32, 42, 49, 0.16); }
 .clone-commands { min-height: 82px; margin: 0 0 8px; padding: 9px 10px; overflow: auto; border: 1px solid #c9d5aa; border-radius: 4px; background: #f9fbf3; color: var(--ink); font-size: 10px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .copy-context:disabled { cursor: not-allowed; opacity: 0.55; }
 .local-run-note, .handoff-status { margin: 8px 0 0; color: #52634c; font-size: 10px; line-height: 1.45; }

@@ -14,21 +14,18 @@ const successCopy = document.querySelector('#success-copy');
 const buildGoalInput = document.querySelector('#build-goal');
 const copyCopilotPromptButton = document.querySelector('#copy-copilot-prompt');
 const copilotCopyStatus = document.querySelector('#copilot-copy-status');
-const cloneRepositoryUrl = document.querySelector('#clone-repository-url');
 const repositoryLink = document.querySelector('#repository-link');
 const repositoryName = document.querySelector('#repository-name');
 const repositoryStatus = document.querySelector('#repository-status');
 const refreshRepositoryStatusButton = document.querySelector('#refresh-repository-status');
-const cloneCommandOutput = document.querySelector('#clone-command-output');
-const copyCloneCommandsButton = document.querySelector('#copy-clone-commands');
-const cloneCopyStatus = document.querySelector('#clone-copy-status');
-const platformChoices = [...document.querySelectorAll('.platform-choice')];
+const localPromptOutput = document.querySelector('#local-prompt-output');
+const copyLocalPromptButton = document.querySelector('#copy-local-prompt');
+const localCopyStatus = document.querySelector('#local-copy-status');
 const catalogSearchForm = document.querySelector('#catalog-search-form');
 const catalogQuery = document.querySelector('#catalog-query');
 const catalogStatus = document.querySelector('#catalog-status');
 const catalogResults = document.querySelector('#catalog-results');
 const steps = [...document.querySelectorAll('.progress-step')];
-let selectedPlatform = 'unix';
 let repositoryContext = null;
 
 function openCodeEntry() {
@@ -135,63 +132,29 @@ function createCopilotKickoff() {
   ].join('\n\n');
 }
 
-function getCloneCommands() {
+function getLocalPrompt() {
   if (!repositoryContext?.repositoryUrl || repositoryContext.hasUncommittedChanges || !repositoryContext.hasUpstream || repositoryContext.ahead > 0 || repositoryContext.behind > 0) {
     return null;
   }
-  const value = cloneRepositoryUrl.value.trim();
-  let repositoryUrl;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com' || parsed.username || parsed.password || parsed.search || parsed.hash) {
-      return null;
-    }
-    repositoryUrl = parsed.href.replace(/\/$/, '');
-    if (!/^https:\/\/github\.com\/[^/]+\/[^/]+(?:\.git)?$/.test(repositoryUrl)) return null;
-  } catch {
-    return null;
-  }
-
-  if (selectedPlatform === 'powershell') {
-    return `git clone ${repositoryUrl} my-procore-app\nSet-Location my-procore-app\nCopy-Item .env.example .env\nnpm install`;
-  }
-  return `git clone ${repositoryUrl} my-procore-app\ncd my-procore-app\ncp .env.example .env\nnpm install`;
+  return [
+    `Clone ${repositoryContext.repositoryUrl} into a new folder, set it up to run locally, and pick up where I left off in my Codespace.`,
+    'Copy .env.example to .env, install dependencies with npm install, and tell me which values I still need to add (my Procore Sandbox Client ID and secret). Do not ask me to paste the secret into chat.',
+    'Then start the app with npm start and confirm it loads at http://localhost:3001. I need Git and Node.js 18 or later; help me install them if they are missing.'
+  ].join('\n\n');
 }
 
-function updateCloneCommands() {
-  if (!repositoryContext) {
-    cloneCommandOutput.textContent = 'Checking this Codespace’s Git status...';
-    copyCloneCommandsButton.disabled = true;
-    return;
+function updateLocalPrompt() {
+  const prompt = getLocalPrompt();
+  copyLocalPromptButton.disabled = !prompt;
+  if (prompt) {
+    localPromptOutput.textContent = prompt;
+  } else if (!repositoryContext) {
+    localPromptOutput.textContent = 'Checking this Codespace’s Git status...';
+  } else if (!repositoryContext.repositoryUrl) {
+    localPromptOutput.textContent = 'No GitHub origin found. Open this Codespace from your GitHub repository.';
+  } else {
+    localPromptOutput.textContent = 'Commit and push your Codespace changes from Source Control first. Then refresh repository status.';
   }
-
-  if (!repositoryContext.repositoryUrl) {
-    cloneCommandOutput.textContent = 'No GitHub origin found. Open this Codespace from your GitHub repository.';
-    copyCloneCommandsButton.disabled = true;
-    return;
-  }
-
-  if (repositoryContext.hasUncommittedChanges) {
-    cloneCommandOutput.textContent = 'Commit and push your Codespace changes from Source Control first. Then refresh repository status.';
-    copyCloneCommandsButton.disabled = true;
-    return;
-  }
-
-  if (!repositoryContext.hasUpstream || repositoryContext.ahead > 0) {
-    cloneCommandOutput.textContent = 'Push or sync your latest Codespace commit to GitHub first. Then refresh repository status.';
-    copyCloneCommandsButton.disabled = true;
-    return;
-  }
-
-  if (repositoryContext.behind > 0) {
-    cloneCommandOutput.textContent = 'Pull or sync the latest GitHub changes into this Codespace before cloning.';
-    copyCloneCommandsButton.disabled = true;
-    return;
-  }
-
-  const commands = getCloneCommands();
-  cloneCommandOutput.textContent = commands || 'Could not prepare clone commands for this repository.';
-  copyCloneCommandsButton.disabled = !commands;
 }
 
 async function loadRepositoryHandoff() {
@@ -203,10 +166,8 @@ async function loadRepositoryHandoff() {
       repositoryLink.href = repositoryContext.repositoryUrl;
       repositoryName.textContent = new URL(repositoryContext.repositoryUrl).pathname.split('/').filter(Boolean).pop();
       repositoryLink.hidden = false;
-      cloneRepositoryUrl.value = repositoryContext.repositoryUrl;
     } else {
       repositoryLink.hidden = true;
-      cloneRepositoryUrl.value = '';
     }
 
     if (repositoryContext.hasUncommittedChanges) {
@@ -216,13 +177,13 @@ async function loadRepositoryHandoff() {
     } else if (repositoryContext.behind > 0) {
       setRepositoryStatus('This Codespace is behind GitHub. In Source Control, pull or sync the latest changes, then refresh here.', 'warning');
     } else {
-      setRepositoryStatus('This Codespace is committed and synced with GitHub. The same repo is ready to clone locally.', 'ready');
+      setRepositoryStatus('This Codespace is committed and synced with GitHub. Claude Code on your computer can pick up from here.', 'ready');
     }
-    updateCloneCommands();
+    updateLocalPrompt();
   } catch (error) {
     repositoryContext = null;
     setRepositoryStatus(error.message, 'warning');
-    updateCloneCommands();
+    updateLocalPrompt();
   } finally {
     refreshRepositoryStatusButton.disabled = false;
   }
@@ -245,28 +206,14 @@ copyCopilotPromptButton.addEventListener('click', async () => {
   }
 });
 
-cloneRepositoryUrl.addEventListener('input', updateCloneCommands);
-
-platformChoices.forEach(choice => {
-  choice.addEventListener('click', () => {
-    selectedPlatform = choice.dataset.platform;
-    platformChoices.forEach(option => {
-      const isSelected = option === choice;
-      option.classList.toggle('is-selected', isSelected);
-      option.setAttribute('aria-pressed', String(isSelected));
-    });
-    updateCloneCommands();
-  });
-});
-
-copyCloneCommandsButton.addEventListener('click', async () => {
-  const commands = getCloneCommands();
-  if (!commands) return;
+copyLocalPromptButton.addEventListener('click', async () => {
+  const prompt = getLocalPrompt();
+  if (!prompt) return;
   try {
-    await navigator.clipboard.writeText(commands);
-    cloneCopyStatus.textContent = 'Commands copied. Add Sandbox credentials to `.env`, then run `npm start`.';
+    await navigator.clipboard.writeText(prompt);
+    localCopyStatus.textContent = 'Prompt copied. Paste it into Claude Code on your computer.';
   } catch {
-    cloneCopyStatus.textContent = 'Clipboard unavailable. Select and copy the commands above.';
+    localCopyStatus.textContent = 'Clipboard unavailable. Select and copy the prompt above.';
   }
 });
 

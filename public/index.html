@@ -18,7 +18,10 @@
         <span class="brand-mark" aria-hidden="true">P</span>
         <span>PROCORE <span class="brand-divider">/</span> WORKSHOP</span>
       </a>
-      <div class="environment"><span class="environment-dot"></span> DEVELOPER SANDBOX</div>
+      <div class="topbar-actions">
+        <button id="catalog-open" class="topbar-button" type="button" aria-controls="catalog-drawer" aria-expanded="false">API lookup</button>
+        <div class="environment"><span class="environment-dot"></span> DEVELOPER SANDBOX</div>
+      </div>
     </header>
 
     <main>
@@ -35,6 +38,17 @@
         <div class="progress-rule"></div>
         <div class="progress-step" data-step="verify"><span>03</span><strong>Verify</strong></div>
       </nav>
+
+      <section id="connected-banner" class="connected-banner" aria-live="polite" hidden>
+        <div class="confetti" id="confetti" aria-hidden="true"></div>
+        <div class="banner-stamp" aria-hidden="true">&#10003;</div>
+        <div class="banner-copy">
+          <p class="eyebrow">MILESTONE UNLOCKED</p>
+          <h2>You're connected to Procore Sandbox.</h2>
+          <p>Your app just signed in and called the Procore API. That is the hardest part of building a custom app, and it works.</p>
+        </div>
+        <a class="primary-button banner-cta" href="#success-panel">Choose what to build <span aria-hidden="true">&#8595;</span></a>
+      </section>
 
       <section class="workbench" aria-label="Sandbox connection workspace">
         <aside class="connection-panel">
@@ -59,6 +73,18 @@
             <p id="code-entry-status" class="code-entry-status" role="status"></p>
             <a id="code-entry-retry" class="text-link" href="/login" hidden>Start a new authorization <span aria-hidden="true">&#8599;</span></a>
           </div>
+          <div id="credential-warning" class="notice notice-warn" role="alert" hidden></div>
+          <details id="trouble" class="trouble">
+            <summary>Having trouble connecting?</summary>
+            <ul>
+              <li><strong>No Procore window opened.</strong> Your browser blocked the pop-up. Allow pop-ups for this site and select Connect again, or open <a href="/login" target="_blank" rel="noopener">the sign-in page</a> in a new tab.</li>
+              <li><strong>Procore shows a redirect URI error.</strong> In the Developer Portal, the Sandbox redirect URI must be exactly <code>urn:ietf:wg:oauth:2.0:oob</code>.</li>
+              <li><strong>The code is rejected.</strong> Codes are single use and expire quickly. Select <em>Start a new authorization</em> and paste the new code right away.</li>
+              <li><strong>The sign-in works but no companies appear.</strong> Install the app in your Developer Sandbox company using its Sandbox App Version Key, then refresh.</li>
+              <li><strong>It worked, then stopped.</strong> Access tokens last 90 minutes, and restarting <code>npm start</code> clears the session. Connect again.</li>
+              <li><strong>Credentials not loaded.</strong> Check the terminal for a WARNING and see step 3 of the README about Codespaces secrets.</li>
+            </ul>
+          </details>
         </aside>
 
         <div class="data-panel">
@@ -80,48 +106,34 @@
           <div id="project-list" class="project-list" aria-live="polite">
             <p class="empty-state">Your project list will appear here after connection.</p>
           </div>
+          <div id="data-help" class="notice" hidden></div>
         </div>
-      </section>
-
-      <section class="api-catalog" aria-labelledby="catalog-title">
-        <div class="catalog-heading">
-          <div>
-            <p class="eyebrow">PROCORE API CATALOG</p>
-            <h2 id="catalog-title">Find an operation</h2>
-          </div>
-          <a class="catalog-source" href="https://developers.procore.com/reference" target="_blank" rel="noopener">Developer reference <span aria-hidden="true">&#8599;</span></a>
-        </div>
-        <form id="catalog-search-form" class="catalog-search">
-          <label class="visually-hidden" for="catalog-query">Search Procore API operations</label>
-          <input id="catalog-query" name="q" type="search" value="create projects batch" placeholder="Search operations, e.g. create projects batch" required>
-          <button class="search-button" type="submit">Search</button>
-        </form>
-        <p id="catalog-status" class="catalog-status" aria-live="polite">Search by resource, action, or operation name.</p>
-        <div id="catalog-results" class="catalog-results" aria-live="polite"></div>
       </section>
 
       <section id="success-panel" class="success-panel" aria-live="polite" hidden>
         <div class="success-heading">
-          <div class="success-stamp" aria-hidden="true">&#10003;</div>
           <div>
-            <p class="eyebrow">SANDBOX CHECK PASSED</p>
-            <h2>It’s connected. Now make it yours.</h2>
-            <p id="success-copy">Your app authenticated and read data from Procore Sandbox.</p>
+            <p class="eyebrow">NEXT STEP</p>
+            <h2>What will you build?</h2>
+            <p id="success-copy">Connect to the Sandbox above, then pick an idea to hand to Copilot.</p>
           </div>
-          <div class="success-spark" aria-hidden="true">&#10022;</div>
         </div>
-        <div class="handoff-grid">
-          <section class="handoff-option" aria-labelledby="copilot-handoff-title">
-            <p class="eyebrow">CONTINUE IN COPILOT</p>
-            <h3 id="copilot-handoff-title">Start building a workflow</h3>
-            <label class="field-label" for="build-goal">What do you want your app to do?</label>
-            <textarea id="build-goal" rows="2">Import new project details from an Excel spreadsheet</textarea>
-            <button id="copy-copilot-prompt" class="search-button" type="button">Copy Copilot kickoff</button>
-            <p id="copilot-copy-status" class="handoff-status" role="status"></p>
-          </section>
-
-          <section class="handoff-option" aria-labelledby="local-handoff-title">
-            <p class="eyebrow">RUN IT LOCALLY</p>
+        <ol class="next-steps">
+          <li>Pick an idea or write your own.</li>
+          <li>Copy the kickoff.</li>
+          <li>Paste it into Copilot Chat in this Codespace.</li>
+        </ol>
+        <div id="idea-chips" class="idea-chips" role="group" aria-label="Seed ideas"></div>
+        <label class="field-label" for="build-goal">What do you want your app to do?</label>
+        <textarea id="build-goal" rows="2"></textarea>
+        <div class="next-actions">
+          <button id="copy-copilot-prompt" class="primary-button next-cta" type="button">Copy Copilot kickoff</button>
+          <button id="catalog-open-inline" class="copy-context" type="button">Look up an API operation</button>
+        </div>
+        <p id="copilot-copy-status" class="handoff-status" role="status"></p>
+        <details class="handoff-more">
+          <summary>Prefer to build on your computer?</summary>
+          <div class="handoff-option">
             <h3 id="local-handoff-title">Take your repo with you</h3>
             <a id="repository-link" class="repository-link" href="#" target="_blank" rel="noopener" hidden>Open <span id="repository-name">current repository</span> <span aria-hidden="true">&#8599;</span></a>
             <p id="repository-status" class="template-instructions" role="status" aria-live="polite">Checking this Codespace’s repository status...</p>
@@ -130,8 +142,8 @@
             <button id="copy-local-prompt" class="copy-context" type="button" disabled>Copy local setup prompt</button>
             <p class="local-run-note">Paste it into an AI coding assistant on your computer, such as Copilot Chat in VS Code or Claude Code if you have access. No assistant? Follow the manual steps in the README. Add your Sandbox credentials to `.env`, then run `npm start`.</p>
             <p id="local-copy-status" class="handoff-status" role="status"></p>
-          </section>
-        </div>
+          </div>
+        </details>
       </section>
 
       <section id="webhook-panel" class="webhook-panel" aria-live="polite" hidden>
@@ -158,5 +170,24 @@
         <span>CONNECTION TEST <i></i> SANDBOX</span>
       </footer>
     </main>
+
+    <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+    <aside id="catalog-drawer" class="drawer" role="dialog" aria-modal="false" aria-labelledby="catalog-title" hidden>
+      <div class="drawer-head">
+        <div>
+          <p class="eyebrow">PROCORE API LOOKUP</p>
+          <h2 id="catalog-title">Find an operation</h2>
+        </div>
+        <button id="catalog-close" class="drawer-close" type="button" aria-label="Close API lookup">&times;</button>
+      </div>
+      <form id="catalog-search-form" class="catalog-search">
+        <label class="visually-hidden" for="catalog-query">Search Procore API operations</label>
+        <input id="catalog-query" name="q" type="search" placeholder="e.g. create project, upload file" required>
+        <button class="search-button" type="submit">Search</button>
+      </form>
+      <p id="catalog-status" class="catalog-status" aria-live="polite">Search by resource and action. Results are short; open one for details.</p>
+      <div id="catalog-results" class="catalog-results" aria-live="polite"></div>
+      <a class="catalog-source" href="https://developers.procore.com/reference" target="_blank" rel="noopener">Full developer reference <span aria-hidden="true">&#8599;</span></a>
+    </aside>
   </body>
 </html>

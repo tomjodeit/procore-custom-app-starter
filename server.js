@@ -177,7 +177,8 @@ app.get('/api/session', (req, res) => {
   res.json({
     connected: Boolean(token?.access_token),
     environment: 'Sandbox',
-    expiresIn: token?.expires_in || null
+    expiresIn: token?.expires_in || null,
+    credentialProblem: credentialProblem()
   });
 });
 

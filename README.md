@@ -52,7 +52,7 @@ Use the Developer Portal recording alongside these steps:
 
    The terminal prints the URL to open. You can also Cmd/Ctrl-click the `localhost:3001` link.
 
-4. `npm start` opens the app in a new browser tab. The first time, your browser or the editor may ask whether to open the external website; choose **Open**. (If nothing opens, use the URL printed in the terminal, or go to the **Ports** tab and click the globe icon next to port 3001.) Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. The dashboard loads companies; choose one to fetch its projects. The success panel appears after a successful Sandbox API read.
+4. `npm start` opens the app in a new browser tab. The first time, your browser or the editor may ask whether to open the external website; choose **Open**. (If nothing opens, use the URL printed in the terminal, or go to the **Ports** tab and click the globe icon next to port 3001.) Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. When it works you will see a green **You're connected to Procore Sandbox** banner. Choose a company to read its projects (optional), then pick an idea under **What will you build?** and select **Copy Copilot kickoff**. Paste it into Copilot Chat in your Codespace to start building. If something goes wrong, open **Having trouble connecting?** on the left for the common fixes.
 
 The app uses in-memory sessions for workshop development; restarting the server clears connected sessions, so just click **Connect to Sandbox** again.
 
@@ -175,7 +175,7 @@ Make the change, and within a few seconds a row appears in "Live events". The da
 
 These two checks are read-only, so the first run proves your connection without changing anything in Procore. They are a starting point, not a limit. Ask Copilot to extend the app (the repository's Copilot instructions cover the headers, pagination, rate limits, fieldsets, and uploads), and see the webhook bonus below for an example that writes to the Sandbox.
 
-The API catalog searches Procore's live OpenAPI document and surfaces request fields and operation cautions. For example, search `create projects batch` to find `PATCH /rest/v1.0/projects/sync`; its reference warns against bulk project creation due to performance bottlenecks. Writes need the matching permissions on your app in the Developer Portal. Keep them on the Sandbox, preview the exact request first, and test with one record before scaling up.
+The **API lookup** button (top right of the dashboard) opens a side panel that searches Procore's live OpenAPI document and shows request fields and operation cautions. For example, search `create projects batch` to find `PATCH /rest/v1.0/projects/sync`; its reference warns against bulk project creation due to performance bottlenecks. Writes need the matching permissions on your app in the Developer Portal. Keep them on the Sandbox, preview the exact request first, and test with one record before scaling up.
 
 ## Explore APIs with Copilot
 

@@ -36,6 +36,16 @@ const webhookConfirm = document.querySelector('#webhook-confirm');
 const webhookCreate = document.querySelector('#webhook-create');
 const webhookDelete = document.querySelector('#webhook-delete');
 const webhookStatus = document.querySelector('#webhook-status');
+const connectedBanner = document.querySelector('#connected-banner');
+const confettiBox = document.querySelector('#confetti');
+const credentialWarning = document.querySelector('#credential-warning');
+const troubleDetails = document.querySelector('#trouble');
+const dataHelp = document.querySelector('#data-help');
+const ideaChips = document.querySelector('#idea-chips');
+const catalogDrawer = document.querySelector('#catalog-drawer');
+const drawerBackdrop = document.querySelector('#drawer-backdrop');
+const catalogOpenButtons = [document.querySelector('#catalog-open'), document.querySelector('#catalog-open-inline')];
+const catalogClose = document.querySelector('#catalog-close');
 let loadedProjects = [];
 let currentHook = null;
 let repositoryContext = null;
@@ -97,7 +107,9 @@ async function getJson(url) {
       }))
     };
     console.error(`API request failed: ${new URL(url, location.origin).pathname}`, diagnostic);
-    throw new Error(details.join(' | ') || `Request failed (${response.status}).`);
+    const failure = new Error(details.join(' | ') || `Request failed (${response.status}).`);
+    failure.status = response.status;
+    throw failure;
   }
   return body;
 }
@@ -111,7 +123,7 @@ function setStep(stepName) {
   });
 }
 
-async function activateConnectedSession() {
+async function activateConnectedSession(justConnected = false) {
   statusPill.classList.add('is-connected');
   statusPill.lastChild.textContent = ' Connected';
   connectedDetails.hidden = false;
@@ -120,6 +132,10 @@ async function activateConnectedSession() {
   codeEntryForm.hidden = true;
   codeEntryFeedback.hidden = true;
   setStep('explore');
+  credentialWarning.hidden = true;
+  successPanel.hidden = false;
+  showConnectedBanner(justConnected);
+  successCopy.textContent = 'Choose a company above to read its projects, or jump straight to an idea below.';
   await loadRepositoryHandoff();
   loadWebhookEvents();
   await loadCompanies();
@@ -141,7 +157,7 @@ function createCopilotKickoff() {
     'Before choosing endpoints or payloads, consult the current Procore OpenAPI specification at https://developers.procore.com/api/v1/resource_groups/full_oas. Use `npm run api:search -- "<resource and action>"` and verify the exact method, version, required fields, and cautions.',
     'First propose an implementation plan with input mapping, validation, duplicate handling, and a dry-run or preview step. Keep credentials server-side.',
     'Do not send mutating API requests or create/update Sandbox records until I review and explicitly confirm the test data.',
-    'For Excel-based project creation, specifically inspect PATCH /rest/v1.0/projects/sync and its warning against bulk project creation due to performance bottlenecks.'
+    'Follow the repository Copilot instructions: send Procore-Company-Id on every call, use the procoreRequest helper in server.js, and mind pagination, rate limits, and configurable fieldsets. If the goal creates projects, prefer a single POST /rest/v1.0/projects over the bulk sync endpoint.'
   ].join('\n\n');
 }
 
@@ -248,48 +264,70 @@ function operationContext(operation) {
   ].filter(Boolean).join('\n\n');
 }
 
+function cleanDescription(text = '') {
+  return text
+    .replace(/^#+\s*/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
+function shorten(text, limit) {
+  return text.length > limit ? `${text.slice(0, limit).trimEnd()}...` : text;
+}
+
+const MAX_RESULTS = 8;
+
 function renderCatalogResults(operations) {
   catalogResults.replaceChildren();
   if (operations.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
-    empty.textContent = 'No matching operations. Try a resource name and action, such as “projects create”.';
+    empty.textContent = 'No matching operations. Try a resource name and action, such as "projects create".';
     catalogResults.append(empty);
     return;
   }
 
-  operations.forEach(operation => {
-    const item = document.createElement('article');
+  operations.slice(0, MAX_RESULTS).forEach(operation => {
+    const item = document.createElement('details');
     item.className = 'operation-result';
 
-    const titleRow = document.createElement('div');
+    const summary = document.createElement('summary');
+    const titleRow = document.createElement('span');
     titleRow.className = 'operation-title-row';
     const method = document.createElement('span');
     method.className = `method-tag method-${operation.method}`;
     method.textContent = operation.method.toUpperCase();
-    const path = document.createElement('code');
-    path.textContent = operation.path;
-    titleRow.append(method, path);
-
-    const heading = document.createElement('h3');
+    const heading = document.createElement('strong');
     heading.textContent = operation.summary;
+    titleRow.append(method, heading);
+    const path = document.createElement('code');
+    path.className = 'operation-path';
+    path.textContent = operation.path;
+    summary.append(titleRow, path);
+    item.append(summary);
+
+    const body = document.createElement('div');
+    body.className = 'operation-body';
     const description = document.createElement('p');
     description.className = 'operation-description';
-    description.textContent = operation.description;
-    item.append(titleRow, heading, description);
+    description.textContent = shorten(cleanDescription(operation.description), 280);
+    body.append(description);
 
-    if (operation.requestBody?.fields?.length) {
-      const fields = document.createElement('p');
-      fields.className = 'schema-fields';
-      fields.textContent = `Body: ${operation.requestBody.fields.map(field => `${field.name}${field.required ? '*' : ''}`).join(', ')}`;
-      item.append(fields);
+    const fields = operation.requestBody?.fields || [];
+    if (fields.length) {
+      const fieldList = document.createElement('p');
+      fieldList.className = 'schema-fields';
+      const shown = fields.slice(0, 10).map(field => `${field.name}${field.required ? '*' : ''}`);
+      fieldList.textContent = `Body: ${shown.join(', ')}${fields.length > 10 ? `, and ${fields.length - 10} more` : ''}`;
+      body.append(fieldList);
     }
 
     if (operation.caution) {
       const caution = document.createElement('p');
       caution.className = 'operation-caution';
-      caution.textContent = operation.caution;
-      item.append(caution);
+      caution.textContent = shorten(cleanDescription(operation.caution), 200);
+      body.append(caution);
     }
 
     const actions = document.createElement('div');
@@ -312,9 +350,17 @@ function renderCatalogResults(operations) {
       }
     });
     actions.append(docs, copy);
-    item.append(actions);
+    body.append(actions);
+    item.append(body);
     catalogResults.append(item);
   });
+
+  if (operations.length > MAX_RESULTS) {
+    const more = document.createElement('p');
+    more.className = 'catalog-status';
+    more.textContent = `Showing the first ${MAX_RESULTS} of ${operations.length}. Add a word to narrow the search.`;
+    catalogResults.append(more);
+  }
 }
 
 catalogSearchForm.addEventListener('submit', async event => {
@@ -327,7 +373,7 @@ catalogSearchForm.addEventListener('submit', async event => {
   try {
     const result = await getJson(`/api/catalog/search?q=${encodeURIComponent(query)}`);
     renderCatalogResults(result.results);
-    catalogStatus.textContent = `${result.results.length} matching operations from the live Procore OAS.`;
+    catalogStatus.textContent = `${result.results.length} matching operation${result.results.length === 1 ? '' : 's'} from the live Procore API reference. Open one for details.`;
   } catch (error) {
     catalogStatus.textContent = error.message;
   }
@@ -335,7 +381,7 @@ catalogSearchForm.addEventListener('submit', async event => {
 
 async function loadProjects(companyId, companyName) {
   setStep('explore');
-  successPanel.hidden = true;
+  dataHelp.hidden = true;
   projectCount.textContent = 'Loading';
   projectList.innerHTML = '<p class="empty-state">Loading Sandbox projects...</p>';
 
@@ -366,12 +412,13 @@ async function loadProjects(companyId, companyName) {
       });
     }
 
-    successCopy.textContent = `Your app read ${projects.length} project${projects.length === 1 ? '' : 's'} from ${companyName} in Procore Sandbox.`;
-    successPanel.hidden = false;
+    successCopy.textContent = `Nice: your app read ${projects.length} project${projects.length === 1 ? '' : 's'} from ${companyName}. Now pick what to build.`;
+    if (projects.length === 0) showDataHelp('This company has no projects yet, which is normal for a fresh Sandbox. Try an idea that creates one, or create a project in Procore and refresh.');
     setStep('verify');
   } catch (error) {
     projectCount.textContent = '--';
     showError(projectList, error.message);
+    showDataHelp(helpFor(error));
   }
 }
 
@@ -388,10 +435,12 @@ async function loadCompanies() {
     companySelect.disabled = false;
     if (companies.length === 0) {
       companySelect.replaceChildren(new Option('No accessible companies found', ''));
+      showDataHelp('No companies came back. Install your app in the Developer Sandbox company using its Sandbox App Version Key, make sure your Sandbox user can access that company, then refresh.');
     }
   } catch (error) {
     companySelect.replaceChildren(new Option(error.message, ''));
-    projectList.innerHTML = '<p class="empty-state">Check Sandbox access and API permissions, then refresh.</p>';
+    projectList.innerHTML = '<p class="empty-state">The company list could not be loaded.</p>';
+    showDataHelp(helpFor(error));
   }
 }
 
@@ -417,10 +466,11 @@ codeEntryForm.addEventListener('submit', async event => {
     if (!response.ok) throw new Error(result.error || `Code exchange failed (${response.status}).`);
 
     codeEntryStatus.textContent = 'Connected. Loading Sandbox companies...';
-    await activateConnectedSession();
+    await activateConnectedSession(true);
   } catch (error) {
-    codeEntryStatus.textContent = error.message;
+    codeEntryStatus.textContent = `${error.message} See "Having trouble connecting?" below.`;
     codeEntryRetry.hidden = false;
+    troubleDetails.open = true;
   }
 });
 
@@ -433,6 +483,11 @@ companySelect.addEventListener('change', () => {
 async function initialize() {
   try {
     const session = await getJson('/api/session');
+    if (session.credentialProblem) {
+      credentialWarning.textContent = session.credentialProblem;
+      credentialWarning.hidden = false;
+      troubleDetails.open = true;
+    }
     if (!session.connected) return;
 
     await activateConnectedSession();
@@ -546,3 +601,80 @@ webhookDelete.addEventListener('click', async () => {
     webhookDelete.disabled = false;
   }
 });
+
+// Side drawer for API lookup, so search never pushes the next step down the page.
+function setDrawer(open) {
+  catalogDrawer.hidden = !open;
+  drawerBackdrop.hidden = !open;
+  catalogOpenButtons[0].setAttribute('aria-expanded', String(open));
+  if (open) catalogQuery.focus();
+  else catalogOpenButtons[0].focus();
+}
+
+catalogOpenButtons.forEach(button => button.addEventListener('click', () => setDrawer(true)));
+catalogClose.addEventListener('click', () => setDrawer(false));
+drawerBackdrop.addEventListener('click', () => setDrawer(false));
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !catalogDrawer.hidden) setDrawer(false);
+});
+
+// Seed ideas for the "What will you build?" panel. `kind` tells people up front whether an idea changes Procore data.
+const IDEAS = [
+  { kind: 'writes', label: 'Create projects from a spreadsheet', goal: 'Create a Procore Sandbox project from a row of a spreadsheet (for example a Google Sheet or CSV of project name, location, and dates). Show a preview of each row first and create only one project after I confirm.' },
+  { kind: 'writes', label: 'Upload a file to Documents', goal: 'Upload a file from my computer into a Sandbox project\'s Documents tool using the uploads-first flow, then show me the new file in Procore.' },
+  { kind: 'listens', label: 'Show live project changes', goal: 'Extend the webhook bonus so that changes to project dates, files, and folders in a Sandbox project appear in a live feed in this app.' },
+  { kind: 'reads', label: 'Summarize my projects', goal: 'Read all projects for a Sandbox company, following pagination, and show a summary table of names, stages, and dates with an option to download it as CSV.' },
+  { kind: 'reads', label: 'Browse the project directory', goal: 'Show the users and vendors in a Sandbox company with search and pagination.' }
+];
+const KIND_LABEL = { writes: 'changes data', listens: 'listens', reads: 'read-only' };
+
+IDEAS.forEach(idea => {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'idea-chip';
+  const label = document.createElement('span');
+  label.textContent = idea.label;
+  const tag = document.createElement('small');
+  tag.textContent = KIND_LABEL[idea.kind];
+  chip.append(label, tag);
+  chip.addEventListener('click', () => {
+    buildGoalInput.value = idea.goal;
+    ideaChips.querySelectorAll('.idea-chip').forEach(other => other.classList.toggle('is-selected', other === chip));
+    copilotCopyStatus.textContent = '';
+  });
+  ideaChips.append(chip);
+});
+buildGoalInput.placeholder = 'Describe your own idea, or pick one above.';
+
+// Celebrate the first connection in this browser session. Respects reduced-motion settings.
+function showConnectedBanner(scrollToIt) {
+  connectedBanner.hidden = false;
+  if (sessionStorage.getItem('celebrated')) return;
+  sessionStorage.setItem('celebrated', '1');
+  if (scrollToIt) connectedBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const colors = ['#ff5200', '#d7ed78', '#e97862', '#5275d8', '#276b50'];
+  confettiBox.replaceChildren(...Array.from({ length: 36 }, (_, index) => {
+    const piece = document.createElement('i');
+    piece.style.left = `${Math.round(Math.random() * 100)}%`;
+    piece.style.background = colors[index % colors.length];
+    piece.style.animationDelay = `${Math.round(Math.random() * 400)}ms`;
+    piece.style.animationDuration = `${1400 + Math.round(Math.random() * 1200)}ms`;
+    piece.style.transform = `rotate(${Math.round(Math.random() * 180)}deg)`;
+    return piece;
+  }));
+  setTimeout(() => confettiBox.replaceChildren(), 3200);
+}
+
+// Turn common failures into a next step instead of a bare error.
+function helpFor(error) {
+  if (error.status === 401) return 'Your session expired or was never connected. Access tokens last 90 minutes, and restarting npm start clears them. Select Connect to Sandbox again.';
+  if (error.status === 403) return 'Procore refused the request. Check that your app is installed in this company (App Management), and that your app has the permissions this call needs in the Developer Portal.';
+  if (error.status === 429) return 'You hit the Procore rate limit. Wait a minute and try again.';
+  return 'That did not work. Check the terminal where npm start is running for details, then try again. The README troubleshooting notes cover common causes.';
+}
+
+function showDataHelp(message) {
+  dataHelp.textContent = message;
+  dataHelp.hidden = false;
+}

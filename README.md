@@ -71,6 +71,23 @@ The workshop app runs in a Codespace or on localhost only. When you are ready to
 - **GitHub Pages** is the natural first stop since your code is already on GitHub. Pages is free, but only for **public** repositories on a free account, so your site and source would be public. Pages serves static files only, so it can host a front end but cannot run this Express server. The server holds your Client Secret and token exchange, so keep it on a separate host (for example Azure, Render, or Fly.io) and never put the secret in front-end code.
 - Before going live, switch from the out-of-band redirect to a real HTTPS redirect URI registered in the Developer Portal (`PROCORE_OAUTH_MODE` and `PROCORE_REDIRECT_URI`), set a fresh `SESSION_SECRET`, and replace the in-memory session store with a persistent one.
 
+## Stretch: react to changes with webhooks
+
+Webhooks let Procore tell your app when something changes (for example a project is created) instead of your app polling the API. This is optional and not wired into the starter, because it has setup costs that the read-only workshop avoids. Read the [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api) guides first, then ask Copilot to build a small listener.
+
+What to know before you start:
+
+- **Your endpoint must be public HTTPS.** In a Codespace, forwarded ports are private by default, so Procore's request would hit a GitHub sign-in page. Making port 3001 **Public** exposes the whole app to anyone with the URL, including the connect and create routes. If you try it, keep the listener on its own route, require a secret header (below), and set the port back to Private when you are done. Local `localhost` will not work without a tunnel.
+- **Permission.** In the Developer Portal, set the app's **Webhooks API** permission to **Standard** (the default is None), then reinstall or update the Sandbox app version so it takes effect.
+- **Create a hook, then triggers.** `POST /rest/v1.0/webhooks/hooks` with your `destination_url`, a lowercase-and-dashes `namespace`, an `api_version` (use `v4.0` for new work), and `destination_headers` such as `{ "Authorization": "Bearer <your-secret>" }`. Then add triggers with `POST /rest/v1.0/webhooks/hooks/{hook_id}/triggers` (`resource_name` plus `event_type` of `create`, `update`, or `delete`). A hook with no triggers sends nothing. Use either `company_id` or `project_id` per request, and send the `Procore-Company-Id` header like any other call.
+- **Verify every request.** Procore sends the headers you configured, so reject any request whose `Authorization` header does not match your secret. Keep that secret in a Codespaces secret, not in code.
+- **Respond fast, work later.** Return `200` or `204` immediately. Procore times out after 5 seconds, retries with backoff, and discards queued events after 12 hours of continuous failure.
+- **A webhook is a notification, not the data.** The payload has IDs (`resource_id`, `project_id`, `company_id`), so fetch the record with a normal API call afterward. The starter keeps tokens in a browser session, so a listener has no token to call back with until you add server-side token storage.
+- **Expect duplicates and gaps.** Deduplicate on the event `ulid` (or `id`), and run an occasional API sync to catch anything missed.
+- **Clean up.** Hooks live in the Sandbox company after your Codespace is gone. Delete test hooks, and note that a stopped Codespace (it sleeps after 30 minutes idle) will fail deliveries.
+
+Check deliveries with `GET /rest/v1.0/webhooks/hooks/{hook_id}/deliveries?company_id=...&filter[status]=failing`.
+
 ## API calls exercised
 
 - `GET https://sandbox.procore.com/rest/v1.0/companies`

@@ -62,3 +62,10 @@ Read these before writing any code that calls Procore. They come from the offici
 - Preview first. Show the exact request that would be sent and wait for the user to confirm before any POST, PUT, PATCH, or DELETE.
 - Test writes with one record, check the result in Procore, then scale up.
 - Prefer a single-record create (for example `POST /rest/v1.0/projects`) over `PATCH /rest/v1.0/projects/sync` for projects, as noted above.
+
+## Webhooks (optional stretch)
+
+- Read [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api). The app needs the Webhooks API permission set to Standard.
+- Create a hook (`POST /rest/v1.0/webhooks/hooks`, with `namespace`, `api_version`, `destination_url`, and `destination_headers`), then triggers (`POST /rest/v1.0/webhooks/hooks/{hook_id}/triggers`). No triggers means no events. Send `Procore-Company-Id` as usual and use `company_id` or `project_id`, not both.
+- The listener must be public HTTPS, verify the `Authorization` header it configured, return `200` or `204` within 5 seconds, then process asynchronously. Deduplicate on the event `ulid`. Payloads contain IDs only, so fetch the record afterward.
+- Do not make the Codespace port public or register a hook without the user's explicit confirmation. Warn that a public port exposes the whole app, and that hooks persist in the Sandbox until deleted.

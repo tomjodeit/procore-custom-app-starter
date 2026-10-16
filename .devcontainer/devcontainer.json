@@ -4,7 +4,7 @@
   "postCreateCommand": "[ -f .env ] || cp .env.example .env; npm install",
   "forwardPorts": [3001],
   "portsAttributes": {
-    "3001": { "label": "Procore app", "onAutoForward": "openPreview" }
+    "3001": { "label": "Procore app", "onAutoForward": "openBrowser" }
   },
   "customizations": {
     "vscode": {

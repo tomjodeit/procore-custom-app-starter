@@ -23,27 +23,30 @@ Use the Developer Portal recording alongside these steps:
 
 ## 3. Open in Codespaces
 
-1. In your copy, add your credentials as **Codespaces secrets** so they survive if the Codespace is ever deleted and never end up in a commit. In GitHub go to **Settings → Codespaces → Secrets → New secret**, grant access to your repository, and add these two:
+1. Click the button below and, under **Repository**, choose your copy (not `tomjodeit/procore-custom-app-starter`). Under **Recommended secrets**, paste your Sandbox Client ID and Client Secret from step 2. GitHub saves them as your own Codespaces secrets, so they persist if the Codespace is ever deleted and never end up in a commit. Then select **Create codespace**.
+
+   [![Create a codespace](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new)
 
    | Secret | Value |
    | --- | --- |
    | `PROCORE_CLIENT_ID` | Sandbox Client ID |
    | `PROCORE_CLIENT_SECRET` | Sandbox Client Secret |
 
-   You can skip this and enter the two values on the create page in the next step instead. If you add them after the Codespace exists, rebuild it (**Command Palette → Codespaces: Rebuild Container**).
-2. Click the button below and, under **Repository**, choose your copy (not `tomjodeit/procore-custom-app-starter`). Or, from your copy's page, select **Code → Codespaces → Create codespace on main**.
-
-   [![Create a codespace](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new)
-
    A Codespace is billed to the person who creates it, so it uses your own free monthly allowance (120 core-hours on GitHub Free), never the account that owns the template. It stops itself after 30 minutes idle.
-3. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
-4. In the terminal:
+
+   <details>
+   <summary>Started a Codespace another way, or need to change the secrets?</summary>
+
+   The quick **Code → Codespaces → Create codespace on main** button in your copy does not show the secrets prompt. Either use **Code → Codespaces → ⋯ → New with options** to get the same page as the button above, or add the two secrets in GitHub under **Settings → Codespaces → Secrets → New secret** (grant access to your copy). Secrets added after a Codespace exists are not loaded until you rebuild it: **Command Palette → Codespaces: Rebuild Container**.
+   </details>
+2. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
+3. In the terminal:
 
    ```sh
    npm start
    ```
 
-5. The app opens in a new browser tab. (If it opens in the editor's preview or does not open, go to the **Ports** tab and click the globe icon next to port 3001.) Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. The dashboard loads companies; choose one to fetch its projects. The success panel appears after a successful Sandbox API read.
+4. The app opens in a new browser tab. (If it opens in the editor's preview or does not open, go to the **Ports** tab and click the globe icon next to port 3001.) Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. The dashboard loads companies; choose one to fetch its projects. The success panel appears after a successful Sandbox API read.
 
 The app uses in-memory sessions for workshop development; restarting the server clears connected sessions, so just click **Connect to Sandbox** again.
 

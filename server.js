@@ -6,6 +6,7 @@ const path = require('node:path');
 const express = require('express');
 const session = require('express-session');
 const { OPENAPI_URL, searchOperations } = require('./lib/procore-oas');
+const { createEventLog, createWebhookHandler } = require('./lib/webhook');
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -287,6 +288,41 @@ app.post('/oauth/code', async (req, res) => {
   return exchangeAuthorizationCode(req, res, code, outOfBandRedirectUri);
 });
 
+// Optional webhook listener (bonus exercise). It runs on its own port so that only this one
+// route needs to be public; the dashboard on `port` can stay private. Off unless WEBHOOK_SECRET is set.
+const webhookSecret = process.env.WEBHOOK_SECRET || '';
+const webhookPort = Number(process.env.WEBHOOK_PORT || 3002);
+const webhookLog = createEventLog(50);
+
+function getWebhookListenerUrl() {
+  const { CODESPACE_NAME, GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN } = process.env;
+  if (CODESPACE_NAME && GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
+    return `https://${CODESPACE_NAME}-${webhookPort}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}/webhooks/procore`;
+  }
+  return `http://localhost:${webhookPort}/webhooks/procore`;
+}
+
+app.get('/api/webhook-events', (req, res) => {
+  if (!req.session.procoreToken) {
+    return res.status(401).json({ error: 'Connect to the Procore Sandbox first.' });
+  }
+  res.json({ enabled: Boolean(webhookSecret), listenerUrl: getWebhookListenerUrl(), events: webhookLog.list() });
+});
+
 app.listen(port, () => {
   console.log(`Local app listening at http://localhost:${port}`);
 });
+
+if (webhookSecret) {
+  const webhookApp = express();
+  webhookApp.disable('x-powered-by');
+  webhookApp.post('/webhooks/procore', express.json({ limit: '16kb' }), createWebhookHandler({ secret: webhookSecret, log: webhookLog }));
+  // Anything else, including bad JSON, gets a bare error and no detail.
+  webhookApp.use((error, req, res, next) => res.status(400).end());
+  webhookApp.use((req, res) => res.status(404).end());
+  webhookApp.listen(webhookPort, () => {
+    console.log(`Webhook listener on port ${webhookPort}: ${getWebhookListenerUrl()}`);
+  });
+} else {
+  console.log('Webhook listener is off. Set WEBHOOK_SECRET to enable the bonus exercise.');
+}

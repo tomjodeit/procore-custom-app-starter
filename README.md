@@ -71,25 +71,66 @@ The workshop app runs in a Codespace or on localhost only. When you are ready to
 - **GitHub Pages** is the natural first stop since your code is already on GitHub. Pages is free, but only for **public** repositories on a free account, so your site and source would be public. Pages serves static files only, so it can host a front end but cannot run this Express server. The server holds your Client Secret and token exchange, so keep it on a separate host (for example Azure, Render, or Fly.io) and never put the secret in front-end code.
 - Before going live, switch from the out-of-band redirect to a real HTTPS redirect URI registered in the Developer Portal (`PROCORE_OAUTH_MODE` and `PROCORE_REDIRECT_URI`), set a fresh `SESSION_SECRET`, and replace the in-memory session store with a persistent one.
 
-## Stretch: react to changes with webhooks
+## Bonus: let Procore tell your app about changes (webhooks)
 
-Webhooks let Procore tell your app when something changes (for example a task or project is created) instead of your app polling the API. This is optional and not wired into the starter. Read [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api) first.
+The main exercise has your app write to Procore. This bonus flips it: your app listens while you change things in Procore, and the dashboard shows each event as it happens. It needs no create permission and no spreadsheet, which makes it a low-friction alternative to creating projects from a list. Background reading: [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api).
 
-**Step 1: just watch the events (no server needed).** Procore needs a public HTTPS URL to deliver to, and a Codespace port is private by default. The easiest start is a hosted test bin such as [Webhook Relay's free webhook tester](https://webhookrelay.com/), which gives you a public URL and shows every request it receives. Bins are public to anyone with the URL and expire after about 48 hours, so use them only with sandbox data and delete the hook afterward. Create the hook, add a trigger, create something in the Sandbox, and watch the event arrive.
+**What the starter gives you.** An optional listener that runs only when `WEBHOOK_SECRET` is set. It runs on its own port (3002) so that port can be public while the dashboard on 3001 stays private. It accepts only `POST /webhooks/procore`, checks the shared secret, validates the v4.0 payload, ignores duplicate events, replies `204` immediately, and keeps the last 50 events in memory for the dashboard's "Live events" panel. Run its tests with `npm test`.
 
-**Step 2: get events into your app (optional).** Running the Webhook Relay `relay` agent in your Codespace forwards the bin's events to a local route on your app over an outbound connection, so you never have to make a Codespace port public. It needs a free Webhook Relay account and an access token (treat it as a secret, in a Codespaces secret and not in code). Avoid setting port 3001 to Public: that exposes the whole app, including the connect and create routes, to anyone with the URL.
+### 1. Turn the listener on
 
-What to know:
+1. Add a Codespaces secret named `WEBHOOK_SECRET` set to a long random string (`openssl rand -hex 32`), then rebuild or restart the Codespace so it is loaded. Locally, put it in `.env`.
+2. Run `npm start`. The log prints the listener URL, for example `https://<codespace-name>-3002.app.github.dev/webhooks/procore`.
+3. Make only the listener port public, so Procore can reach it:
 
-- **Permission.** In the Developer Portal, set the app's **Webhooks API** permission to **Standard** (the default is None), then update the Sandbox app version so it takes effect.
-- **Create a hook, then triggers, with the v2.0 endpoints.** Create a hook with `POST /rest/v2.0/companies/{company_id}/webhooks/hooks` (or the project-level path under `/projects/{project_id}/`), sending `destination_url`, a lowercase-and-dashes `namespace`, `payload_version` (use `v4.0`), and `destination_headers` with an `Authorization` value. Then add triggers with `POST /rest/v2.0/companies/{company_id}/webhooks/hooks/{hook_id}/triggers`, each with a `resource_name` and an `event_type` such as `create`, `update`, or `delete`. A hook with no triggers sends nothing. Send the `Procore-Company-Id` header like any other call. The older `/rest/v1.0/webhooks/hooks` endpoints (still shown in the Set Up Webhooks guide) use `api_version` instead. Don't confuse that with the payload format versions v2.0, v3.0, and v4.0, which describe the shape of each delivery.
-- **Verify every request.** Procore sends the `Authorization` header you configured, so reject requests that do not match your secret. Keep it in a Codespaces secret.
-- **Respond fast, work later.** Return `200` or `204` immediately. Procore times out after 5 seconds, retries with backoff, and discards queued events after 12 hours of continuous failure.
-- **A webhook is a notification, not the data.** A v4.0 payload carries IDs and names (`id`, `reason`, `company_id`, `project_id`, `resource_type`, `resource_id`), so fetch the record with a normal API call afterward. The starter keeps tokens in a browser session, so a listener has no token to call back with until you add server-side token storage.
-- **Expect duplicates and gaps.** Deduplicate on the event `id` (a ULID), and run an occasional API sync to catch anything missed.
-- **Clean up.** Hooks live in the Sandbox company after your Codespace is gone, so delete test hooks. A stopped Codespace (it sleeps after 30 minutes idle) cannot receive deliveries.
+   ```sh
+   gh codespace ports visibility 3002:public -c $CODESPACE_NAME
+   ```
 
-Check deliveries with the list-deliveries endpoint in the Set Up Webhooks guide, filtering for `failing` ones.
+   Do not make port 3001 public. Public ports are reachable by anyone with the URL, so the secret header is what protects 3002. If the Codespace restarts, check that port 3002 is still Public.
+
+### 2. Create a project webhook in the Sandbox
+
+Procore's web UI creates a hook with the same API calls shown below, so you can use the project's Webhooks tool, or send the calls yourself. The listener requires the secret header, so if the UI doesn't let you set one, use the API. The app needs the **Webhooks API** permission set to **Standard** in the Developer Portal. Replace the placeholders with your own IDs:
+
+```
+POST /rest/v2.0/companies/{company_id}/projects/{project_id}/webhooks/hooks
+{
+  "payload_version": "v4.0",
+  "namespace": "procore-starter",
+  "destination_url": "https://<your-3002-url>/webhooks/procore",
+  "destination_headers": { "Authorization": "Bearer <your WEBHOOK_SECRET>" }
+}
+
+POST /rest/v2.0/companies/{company_id}/projects/{project_id}/webhooks/hooks/{hook_id}/triggers/bulk
+[
+  { "resource_name": "Project Dates", "event_type": "update" },
+  { "resource_name": "Project Files", "event_type": "create" }
+]
+```
+
+Send the `Procore-Company-Id` header on both. The hook response wraps the hook in `data` and returns its `id` as a string. `namespace` accepts lowercase letters, digits, and dashes. Company-level hooks use the same paths without `/projects/{project_id}`.
+
+### 3. Pick easy triggers
+
+These need no setup beyond a sandbox project, and each is a click away in the Procore UI:
+
+| Do this in Procore | Trigger (`resource_name`) |
+| --- | --- |
+| Edit the project's start or completion dates | `Project Dates` (`update`) |
+| Change project settings | `Project Configuration` (`update`) |
+| Upload a file in Documents | `Project Files` (`create`), `Project File Versions` (`create`) |
+| Create, rename, or delete a folder | `Project Folders` (`create`, `update`, `delete`) |
+
+Make the change, and within a few seconds a row appears in "Live events". Keep triggers to what you need: each one adds noise, and an `update` trigger fires on any edit.
+
+### Good to know
+
+- **A webhook is a notification, not the data.** A v4.0 event carries IDs and names (`id`, `reason`, `company_id`, `project_id`, `resource_type`, `resource_id`), so fetch the full record with a normal API call. This starter doesn't do that, because a listener has no user session to borrow a token from. Production apps use a service account or stored, encrypted tokens.
+- **Procore expects a fast reply.** It waits 5 seconds, retries with backoff when delivery fails, and discards queued events after 12 hours of continuous failure. Deliveries can repeat, so dedupe on the event `id`. Run an occasional API sync to catch anything missed.
+- **A stopped Codespace can't receive events** (it sleeps after 30 minutes idle), and hooks stay in the Sandbox afterward. Delete test hooks when you're done.
+- **What a production listener adds:** its own hosted service with managed HTTPS, secrets in a secret manager and rotated, a queue and database instead of memory, size and rate limits, ignoring events caused by your own app (see the event metadata), and monitoring of the deliveries endpoint.
+- **No public port?** A hosted test bin such as Webhook Relay's free webhook tester gives you a public URL that just shows what Procore sends. Bins are public and expire after about 48 hours, so use sandbox data only.
 
 ## API calls exercised
 

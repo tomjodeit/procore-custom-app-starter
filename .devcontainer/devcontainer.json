@@ -2,13 +2,25 @@
   "name": "Procore Custom App Starter",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bookworm",
   "postCreateCommand": "[ -f .env ] || cp .env.example .env; npm install",
-  "forwardPorts": [3001],
+  "forwardPorts": [
+    3001
+  ],
   "portsAttributes": {
-    "3001": { "label": "Procore app", "onAutoForward": "openBrowser" }
+    "3001": {
+      "label": "Procore app",
+      "onAutoForward": "openBrowser"
+    },
+    "3002": {
+      "label": "Webhook listener (bonus)",
+      "onAutoForward": "silent"
+    }
   },
   "customizations": {
     "vscode": {
-      "extensions": ["GitHub.copilot", "GitHub.copilot-chat"]
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
     }
   },
   "secrets": {

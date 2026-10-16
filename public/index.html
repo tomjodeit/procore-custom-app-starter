@@ -134,6 +134,16 @@
         </div>
       </section>
 
+      <section id="webhook-panel" class="webhook-panel" aria-live="polite" hidden>
+        <p class="eyebrow">BONUS: WEBHOOKS</p>
+        <h2>Live events from Procore</h2>
+        <p class="template-instructions">Point a Sandbox webhook at this URL (see the README), then change something in Procore.</p>
+        <label class="field-label" for="webhook-url">Listener URL</label>
+        <input id="webhook-url" type="text" readonly>
+        <ul id="webhook-events" class="webhook-events"></ul>
+        <p id="webhook-empty" class="empty-state">Waiting for events...</p>
+      </section>
+
       <footer class="workshop-footer">
         <span>WORKSHOP BUILD <b>01</b></span>
         <span>READ-ONLY TEST <i></i> SANDBOX</span>

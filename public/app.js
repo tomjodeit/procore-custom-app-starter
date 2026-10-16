@@ -26,6 +26,10 @@ const catalogQuery = document.querySelector('#catalog-query');
 const catalogStatus = document.querySelector('#catalog-status');
 const catalogResults = document.querySelector('#catalog-results');
 const steps = [...document.querySelectorAll('.progress-step')];
+const webhookPanel = document.querySelector('#webhook-panel');
+const webhookUrl = document.querySelector('#webhook-url');
+const webhookEvents = document.querySelector('#webhook-events');
+const webhookEmpty = document.querySelector('#webhook-empty');
 let repositoryContext = null;
 
 function openCodeEntry() {
@@ -109,6 +113,7 @@ async function activateConnectedSession() {
   codeEntryFeedback.hidden = true;
   setStep('explore');
   await loadRepositoryHandoff();
+  loadWebhookEvents();
   await loadCompanies();
 }
 
@@ -427,3 +432,22 @@ async function initialize() {
 }
 
 initialize();
+
+// Bonus exercise: show events received by the optional webhook listener (see the README).
+async function loadWebhookEvents() {
+  try {
+    const { enabled, listenerUrl, events } = await getJson('/api/webhook-events');
+    webhookPanel.hidden = !enabled;
+    if (!enabled) return;
+    webhookUrl.value = listenerUrl;
+    webhookEvents.replaceChildren(...events.map(event => {
+      const item = document.createElement('li');
+      item.textContent = `${event.receivedAt.slice(11, 19)}  ${event.resourceType}  ${event.reason}  (id ${event.resourceId || 'n/a'}, project ${event.projectId || 'n/a'})`;
+      return item;
+    }));
+    webhookEmpty.hidden = events.length > 0;
+    setTimeout(loadWebhookEvents, 5000);
+  } catch {
+    webhookPanel.hidden = true;
+  }
+}

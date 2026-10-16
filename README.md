@@ -1,6 +1,6 @@
 # Procore Custom App Starter
 
-A quick start for creating a Procore custom app, connecting it to a Developer Sandbox, and verifying access to company and project data. The app uses an authorization-code flow, keeps credentials and access tokens on the server, and performs read-only API checks.
+A quick start for creating a Procore custom app, connecting it to a Developer Sandbox, and verifying access to company and project data. The app uses an authorization-code flow, keeps credentials and access tokens on the server, and starts with two safe read-only checks so your first run cannot change anything. From there it is a foundation to build on: create records, upload files, react to webhooks, or connect another system.
 
 The recommended path is **GitHub Codespaces**: nothing to install, the same environment for everyone, and GitHub Copilot is built in.
 
@@ -164,7 +164,9 @@ Make the change, and within a few seconds a row appears in "Live events". The da
 - `GET https://sandbox.procore.com/rest/v1.0/companies`
 - `GET https://sandbox.procore.com/rest/v1.1/projects?company_id=...` with `Procore-Company-Id`
 
-The workshop is read-only and does not create Procore records. The API catalog searches Procore's live OpenAPI document and surfaces request fields and operation cautions. For example, search `create projects batch` to find `PATCH /rest/v1.0/projects/sync`; its reference warns against bulk project creation due to performance bottlenecks.
+These two checks are read-only, so the first run proves your connection without changing anything in Procore. They are a starting point, not a limit. Ask Copilot to extend the app (the repository's Copilot instructions cover the headers, pagination, rate limits, fieldsets, and uploads), and see the webhook bonus below for an example that writes to the Sandbox.
+
+The API catalog searches Procore's live OpenAPI document and surfaces request fields and operation cautions. For example, search `create projects batch` to find `PATCH /rest/v1.0/projects/sync`; its reference warns against bulk project creation due to performance bottlenecks. Writes need the matching permissions on your app in the Developer Portal. Keep them on the Sandbox, preview the exact request first, and test with one record before scaling up.
 
 ## Explore APIs with Copilot
 
@@ -178,4 +180,4 @@ grep -n '"/rest/v1.0/projects/sync"' tmp/procore-openapi.json
 
 Use the dashboard's **Copy Copilot context** action to include a selected operation's method, path, body fields, cautions, and reference link in a planning prompt. The catalog is discovery-only: it never runs an operation. Keep automation design, validation, and any Sandbox writes as explicit next steps.
 
-Add a separate, explicit Sandbox write exercise only after choosing the record type and confirming the required app permissions.
+When you are ready to write to the Sandbox, choose the record type, confirm the app has the required permissions, and have Copilot show the exact request before anything is sent.

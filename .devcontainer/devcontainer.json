@@ -17,9 +17,6 @@
     },
     "PROCORE_CLIENT_SECRET": {
       "description": "Sandbox Client Secret from your Procore custom app."
-    },
-    "SESSION_SECRET": {
-      "description": "Any long random string, e.g. the output of: openssl rand -hex 32"
     }
   }
 }

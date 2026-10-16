@@ -18,15 +18,14 @@ Use the Developer Portal recording alongside these steps:
 ## 2. Open in Codespaces
 
 1. Click **Use this template → Create a new repository** above to make your own copy (public or private). Use your copy for everything below, not this repository, so you can commit and push your changes.
-2. Add your credentials as **Codespaces secrets** so they survive if the Codespace is ever deleted and never end up in a commit. In GitHub go to **Settings → Codespaces → Secrets → New secret**, grant access to your repository, and add:
+2. Add your credentials as **Codespaces secrets** so they survive if the Codespace is ever deleted and never end up in a commit. In GitHub go to **Settings → Codespaces → Secrets → New secret**, grant access to your repository, and add these two:
 
    | Secret | Value |
    | --- | --- |
    | `PROCORE_CLIENT_ID` | Sandbox Client ID |
    | `PROCORE_CLIENT_SECRET` | Sandbox Client Secret |
-   | `SESSION_SECRET` | Any long random string (`openssl rand -hex 32`) |
 
-   Add secrets before creating the Codespace. The create page also prompts for these three values, so you can enter them there instead. If you add them afterward, rebuild the Codespace (**Command Palette → Codespaces: Rebuild Container**).
+   Add secrets before creating the Codespace. The create page also prompts for these two values, so you can enter them there instead. If you add them afterward, rebuild the Codespace (**Command Palette → Codespaces: Rebuild Container**).
 3. In your copy, select **Code → Codespaces → Create codespace on main**.
 4. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
 5. In the terminal:

@@ -1,6 +1,6 @@
 # Procore Custom App Starter
 
-[![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/tomjodeit/procore-custom-app-starter/generate)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tomjodeit/procore-custom-app-starter) [![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/tomjodeit/procore-custom-app-starter/generate)
 
 A quick start for creating a Procore custom app, connecting it to a Developer Sandbox, and verifying access to company and project data. The app uses an authorization-code flow, keeps credentials and access tokens on the server, and performs read-only API checks.
 
@@ -17,8 +17,12 @@ Use the Developer Portal recording alongside these steps:
 
 ## 2. Open in Codespaces
 
-1. Click **Use this template → Create a new repository** above to make your own copy (public or private). Use your copy for everything below, not this repository, so you can commit and push your changes.
-2. Add your credentials as **Codespaces secrets** so they survive if the Codespace is ever deleted and never end up in a commit. In GitHub go to **Settings → Codespaces → Secrets → New secret**, grant access to your repository, and add these two:
+1. Choose how to start:
+   - **Open in GitHub Codespaces** (the first button above) is the fastest. The create page asks for your Procore credentials, so you can skip step 2. When you commit, GitHub offers to fork the repository into your own account so you can push.
+   - **Use this template → Create a new repository** makes your own copy first (public or private). Then, in your copy, select **Code → Codespaces → Create codespace on main**. This is the better choice if you plan to keep building.
+
+   Either way, a Codespace is billed to the person who creates it, not to this repository's owner. Personal GitHub accounts include a free monthly allowance (120 core-hours on GitHub Free), and a Codespace stops itself after 30 minutes idle.
+2. Add your credentials as **Codespaces secrets** (skip this if you entered them on the create page) so they survive if the Codespace is ever deleted and never end up in a commit. In GitHub go to **Settings → Codespaces → Secrets → New secret**, grant access to your repository, and add these two:
 
    | Secret | Value |
    | --- | --- |

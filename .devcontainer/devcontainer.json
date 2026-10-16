@@ -1,0 +1,25 @@
+{
+  "name": "Procore Custom App Starter",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bookworm",
+  "postCreateCommand": "[ -f .env ] || cp .env.example .env; npm install",
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": { "label": "Procore app", "onAutoForward": "openPreview" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["GitHub.copilot", "GitHub.copilot-chat"]
+    }
+  },
+  "secrets": {
+    "PROCORE_CLIENT_ID": {
+      "description": "Sandbox Client ID from your Procore custom app (Sandbox OAuth Credentials)."
+    },
+    "PROCORE_CLIENT_SECRET": {
+      "description": "Sandbox Client Secret from your Procore custom app."
+    },
+    "SESSION_SECRET": {
+      "description": "Any long random string, e.g. the output of: openssl rand -hex 32"
+    }
+  }
+}

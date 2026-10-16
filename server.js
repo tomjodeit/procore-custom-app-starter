@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const crypto = require('node:crypto');
-const { execFileSync } = require('node:child_process');
+const { execFile, execFileSync } = require('node:child_process');
 const path = require('node:path');
 const express = require('express');
 const session = require('express-session');
@@ -409,7 +409,14 @@ app.listen(port, () => {
   console.log(`Local app listening at http://localhost:${port}`);
   const { CODESPACE_NAME, GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN } = process.env;
   if (CODESPACE_NAME && GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
-    console.log(`Open the app in your browser: https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`);
+    const appUrl = `https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
+    console.log(`Open the app in your browser: ${appUrl}`);
+    // Codespaces terminals set $BROWSER to a helper that opens a new tab. Set NO_AUTO_OPEN=1 to skip this.
+    if (process.env.BROWSER && !process.env.NO_AUTO_OPEN) {
+      execFile(process.env.BROWSER, [appUrl], { timeout: 10000 }, error => {
+        if (error) console.log('Could not open a browser tab automatically. Use the URL above or the Ports tab.');
+      });
+    }
   }
   const problem = credentialProblem();
   if (problem) console.warn(`\nWARNING: ${problem}\n`);

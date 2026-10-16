@@ -8,7 +8,7 @@
   "portsAttributes": {
     "3001": {
       "label": "Procore app",
-      "onAutoForward": "openBrowser"
+      "onAutoForward": "notify"
     },
     "3002": {
       "label": "Webhook listener (bonus)",

@@ -1,14 +1,14 @@
 # Procore Custom App Starter
 
-[![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/tomjodeit/procore-custom-app-starter/generate)
-
 A quick start for creating a Procore custom app, connecting it to a Developer Sandbox, and verifying access to company and project data. The app uses an authorization-code flow, keeps credentials and access tokens on the server, and performs read-only API checks.
 
 The recommended path is **GitHub Codespaces**: nothing to install, the same environment for everyone, and GitHub Copilot is built in.
 
 ## 1. Make your own copy
 
-Click **Use this template → Create a new repository** (the green button at the top of this page), pick yourself as the owner, and choose public or private. You get an independent copy in your own GitHub account, with no link back to this repository, so you can commit and push freely. Use your copy for everything that follows.
+[![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/tomjodeit/procore-custom-app-starter/generate)
+
+Click the button above, then **Create a new repository**, pick yourself as the owner, and choose public or private. You get an independent copy in your own GitHub account, with no link back to this repository, so you can commit and push freely. Use your copy for everything that follows.
 
 A fork also works if you want to pull in future updates from this repository, but a fork of a public repository must stay public, so the template is the better choice if you will build something for your company.
 
@@ -31,7 +31,11 @@ Use the Developer Portal recording alongside these steps:
    | `PROCORE_CLIENT_SECRET` | Sandbox Client Secret |
 
    You can skip this and enter the two values on the create page in the next step instead. If you add them after the Codespace exists, rebuild it (**Command Palette → Codespaces: Rebuild Container**).
-2. In your copy, select **Code → Codespaces → Create codespace on main**. (The direct link is `https://codespaces.new/YOUR-USER/YOUR-REPO`.) A Codespace is billed to the person who creates it, so it uses your own free monthly allowance (120 core-hours on GitHub Free), never the account that owns the template. It stops itself after 30 minutes idle.
+2. Click the button below and, under **Repository**, choose your copy (not `tomjodeit/procore-custom-app-starter`). Or, from your copy's page, select **Code → Codespaces → Create codespace on main**.
+
+   [![Create a codespace](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new)
+
+   A Codespace is billed to the person who creates it, so it uses your own free monthly allowance (120 core-hours on GitHub Free), never the account that owns the template. It stops itself after 30 minutes idle.
 3. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
 4. In the terminal:
 

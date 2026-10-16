@@ -48,13 +48,11 @@ You do not need to create a new Codespace each time. Reopen the same one from [g
 
 ## Prefer your own machine?
 
-The easiest way to continue locally is with [Claude Code](https://claude.com/claude-code). After you have committed and pushed your changes from the Codespace (Source Control → **Commit**, then **Sync Changes**), open Claude Code and give it your repository URL, for example:
+First commit and push your changes from the Codespace (Source Control → **Commit**, then **Sync Changes**). The dashboard's success panel then unlocks a **Copy local setup prompt** button.
 
-> Clone https://github.com/YOUR-USER/YOUR-REPO, set it up to run locally, and pick up where I left off.
+Paste that prompt into an AI coding assistant running in an empty folder on your computer. Any assistant that can run terminal commands works, for example Copilot Chat (agent mode) in VS Code, or [Claude Code](https://claude.com/claude-code) if you have access. It will clone the repo, install dependencies, create the `.env`, and start the server. You still add your Sandbox Client ID and secret to the local `.env` yourself. You need Git and Node.js 18 or later on that machine. The out-of-band Sandbox flow works the same in a local browser at `http://localhost:3001`.
 
-Claude Code can clone the repo, install dependencies, create the `.env`, and start the server. You will still add your Sandbox Client ID and secret to the local `.env`. You need Git and Node.js 18 or later on that machine, and Claude Code can help you install them. The out-of-band Sandbox flow works the same in a local browser at `http://localhost:3001`.
-
-Already comfortable with a terminal? Manually:
+No assistant available? Do it manually:
 
 ```sh
 git clone https://github.com/YOUR-USER/YOUR-REPO.git my-procore-app

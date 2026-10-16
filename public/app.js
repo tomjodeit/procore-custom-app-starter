@@ -177,7 +177,7 @@ async function loadRepositoryHandoff() {
     } else if (repositoryContext.behind > 0) {
       setRepositoryStatus('This Codespace is behind GitHub. In Source Control, pull or sync the latest changes, then refresh here.', 'warning');
     } else {
-      setRepositoryStatus('This Codespace is committed and synced with GitHub. Claude Code on your computer can pick up from here.', 'ready');
+      setRepositoryStatus('This Codespace is committed and synced with GitHub. An AI assistant on your computer can pick up from here.', 'ready');
     }
     updateLocalPrompt();
   } catch (error) {
@@ -211,7 +211,7 @@ copyLocalPromptButton.addEventListener('click', async () => {
   if (!prompt) return;
   try {
     await navigator.clipboard.writeText(prompt);
-    localCopyStatus.textContent = 'Prompt copied. Paste it into Claude Code on your computer.';
+    localCopyStatus.textContent = 'Prompt copied. Paste it into an AI coding assistant on your computer.';
   } catch {
     localCopyStatus.textContent = 'Clipboard unavailable. Select and copy the prompt above.';
   }

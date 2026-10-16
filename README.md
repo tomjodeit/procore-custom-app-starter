@@ -6,7 +6,13 @@ A quick start for creating a Procore custom app, connecting it to a Developer Sa
 
 The recommended path is **GitHub Codespaces**: nothing to install, the same environment for everyone, and GitHub Copilot is built in.
 
-## 1. Create your Procore custom app
+## 1. Make your own copy
+
+Click **Use this template → Create a new repository** (the green button at the top of this page), pick yourself as the owner, and choose public or private. You get an independent copy in your own GitHub account, with no link back to this repository, so you can commit and push freely. Use your copy for everything that follows.
+
+A fork also works if you want to pull in future updates from this repository, but a fork of a public repository must stay public, so the template is the better choice if you will build something for your company.
+
+## 2. Create your Procore custom app
 
 Use the Developer Portal recording alongside these steps:
 
@@ -14,12 +20,6 @@ Use the Developer Portal recording alongside these steps:
 2. Set the Sandbox redirect URI to `urn:ietf:wg:oauth:2.0:oob` for this workshop flow.
 3. Install the app in the Developer Sandbox company using its Sandbox App Version Key.
 4. Keep the Sandbox Client ID and Client Secret handy for the next step.
-
-## 2. Make your own copy
-
-Click **Use this template → Create a new repository** (the green button at the top of this page), pick yourself as the owner, and choose public or private. You get an independent copy in your own GitHub account, with no link back to this repository, so you can commit and push freely. Use your copy for everything below.
-
-A fork also works if you want to pull in future updates from this repository, but a fork of a public repository must stay public, so the template is the better choice if you will build something for your company.
 
 ## 3. Open in Codespaces
 

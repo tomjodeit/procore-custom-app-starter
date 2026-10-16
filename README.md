@@ -75,10 +75,24 @@ Another option that avoids installing anything: open the Codespace from your des
 
 ## What's next: hosting
 
-The workshop app runs in a Codespace or on localhost only. When you are ready to share an app:
+The workshop app runs in a Codespace or on localhost only. When you are ready to share an app, the server (which holds your Client Secret and does the token exchange) needs a real host, and the secret must never go into front-end code.
 
-- **GitHub Pages** is the natural first stop since your code is already on GitHub. Pages is free, but only for **public** repositories on a free account, so your site and source would be public. Pages serves static files only, so it can host a front end but cannot run this Express server. The server holds your Client Secret and token exchange, so keep it on a separate host (for example Azure, Render, or Fly.io) and never put the secret in front-end code.
-- Before going live, switch from the out-of-band redirect to a real HTTPS redirect URI registered in the Developer Portal (`PROCORE_OAUTH_MODE` and `PROCORE_REDIRECT_URI`), set a fresh `SESSION_SECRET`, and replace the in-memory session store with a persistent one.
+**GitHub Pages is not the place for the server.** It serves static files only, so it can host a front end but cannot run this Express app. It is also free only for **public** repositories on a free account, so the site and source would be public.
+
+Hosts that fit this app:
+
+| Host | Good for | Notes |
+| --- | --- | --- |
+| **Azure** (App Service or Container Apps) | Microsoft-centric teams and enterprise clients | Runs the app as-is. Entra ID for sign-in, Key Vault for the Procore secret, and your organization's usual procurement and compliance. A sensible default for most Procore customers. |
+| **Render** | The fastest way to get this exact app online | Connect your GitHub repo, set environment variables, deploy. No code changes. Free instances sleep when idle, which breaks webhook delivery, so use a paid instance for anything real. |
+| **Vercel** | Teams that already use it and like its GitHub workflow (a preview deploy for every pull request) | Express runs there, but as time-limited serverless functions, not an always-on server (see [Fluid compute](https://vercel.com/docs/fluid-compute)). Sessions and webhook events must move out of memory into an external store, and the webhook listener becomes a route on the same app instead of its own port. Check Vercel's plan terms for commercial use. |
+
+Before going live, on any host:
+
+- Switch from the out-of-band redirect to a real HTTPS redirect URI registered in the Developer Portal (`PROCORE_OAUTH_MODE` and `PROCORE_REDIRECT_URI`).
+- Set a fixed, random `SESSION_SECRET`, and replace the in-memory session store with a persistent one (Redis, a database, or your host's session service). The starter loses all sessions on restart, and serverless hosts can restart it between requests.
+- Put your Procore Client ID and secret in the host's secret store, not in the repository.
+- If you use webhooks, store events in a database and process them off the request, as described in the webhook bonus.
 
 ## Bonus: let Procore tell your app about changes (webhooks)
 

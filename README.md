@@ -73,20 +73,23 @@ The workshop app runs in a Codespace or on localhost only. When you are ready to
 
 ## Stretch: react to changes with webhooks
 
-Webhooks let Procore tell your app when something changes (for example a project is created) instead of your app polling the API. This is optional and not wired into the starter, because it has setup costs that the read-only workshop avoids. Read the [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api) guides first, then ask Copilot to build a small listener.
+Webhooks let Procore tell your app when something changes (for example a task or project is created) instead of your app polling the API. This is optional and not wired into the starter. Read [How Webhooks Work](https://developers.procore.com/documentation/webhooks) and [Set Up Webhooks](https://developers.procore.com/documentation/webhooks-api) first.
 
-What to know before you start:
+**Step 1: just watch the events (no server needed).** Procore needs a public HTTPS URL to deliver to, and a Codespace port is private by default. The easiest start is a hosted test bin such as [Webhook Relay's free webhook tester](https://webhookrelay.com/), which gives you a public URL and shows every request it receives. Bins are public to anyone with the URL and expire after about 48 hours, so use them only with sandbox data and delete the hook afterward. Create the hook, add a trigger, create something in the Sandbox, and watch the event arrive.
 
-- **Your endpoint must be public HTTPS.** In a Codespace, forwarded ports are private by default, so Procore's request would hit a GitHub sign-in page. Making port 3001 **Public** exposes the whole app to anyone with the URL, including the connect and create routes. If you try it, keep the listener on its own route, require a secret header (below), and set the port back to Private when you are done. Local `localhost` will not work without a tunnel.
-- **Permission.** In the Developer Portal, set the app's **Webhooks API** permission to **Standard** (the default is None), then reinstall or update the Sandbox app version so it takes effect.
-- **Create a hook, then triggers.** `POST /rest/v1.0/webhooks/hooks` with your `destination_url`, a lowercase-and-dashes `namespace`, an `api_version` (use `v4.0` for new work), and `destination_headers` such as `{ "Authorization": "Bearer <your-secret>" }`. Then add triggers with `POST /rest/v1.0/webhooks/hooks/{hook_id}/triggers` (`resource_name` plus `event_type` of `create`, `update`, or `delete`). A hook with no triggers sends nothing. Use either `company_id` or `project_id` per request, and send the `Procore-Company-Id` header like any other call.
-- **Verify every request.** Procore sends the headers you configured, so reject any request whose `Authorization` header does not match your secret. Keep that secret in a Codespaces secret, not in code.
+**Step 2: get events into your app (optional).** Running the Webhook Relay `relay` agent in your Codespace forwards the bin's events to a local route on your app over an outbound connection, so you never have to make a Codespace port public. It needs a free Webhook Relay account and an access token (treat it as a secret, in a Codespaces secret and not in code). Avoid setting port 3001 to Public: that exposes the whole app, including the connect and create routes, to anyone with the URL.
+
+What to know:
+
+- **Permission.** In the Developer Portal, set the app's **Webhooks API** permission to **Standard** (the default is None), then update the Sandbox app version so it takes effect.
+- **Create a hook, then triggers, with the v2.0 endpoints.** Create a hook with `POST /rest/v2.0/companies/{company_id}/webhooks/hooks` (or the project-level path under `/projects/{project_id}/`), sending `destination_url`, a lowercase-and-dashes `namespace`, `payload_version` (use `v4.0`), and `destination_headers` with an `Authorization` value. Then add triggers with `POST /rest/v2.0/companies/{company_id}/webhooks/hooks/{hook_id}/triggers`, each with a `resource_name` and an `event_type` such as `create`, `update`, or `delete`. A hook with no triggers sends nothing. Send the `Procore-Company-Id` header like any other call. The older `/rest/v1.0/webhooks/hooks` endpoints (still shown in the Set Up Webhooks guide) use `api_version` instead. Don't confuse that with the payload format versions v2.0, v3.0, and v4.0, which describe the shape of each delivery.
+- **Verify every request.** Procore sends the `Authorization` header you configured, so reject requests that do not match your secret. Keep it in a Codespaces secret.
 - **Respond fast, work later.** Return `200` or `204` immediately. Procore times out after 5 seconds, retries with backoff, and discards queued events after 12 hours of continuous failure.
-- **A webhook is a notification, not the data.** The payload has IDs (`resource_id`, `project_id`, `company_id`), so fetch the record with a normal API call afterward. The starter keeps tokens in a browser session, so a listener has no token to call back with until you add server-side token storage.
-- **Expect duplicates and gaps.** Deduplicate on the event `ulid` (or `id`), and run an occasional API sync to catch anything missed.
-- **Clean up.** Hooks live in the Sandbox company after your Codespace is gone. Delete test hooks, and note that a stopped Codespace (it sleeps after 30 minutes idle) will fail deliveries.
+- **A webhook is a notification, not the data.** A v4.0 payload carries IDs and names (`id`, `reason`, `company_id`, `project_id`, `resource_type`, `resource_id`), so fetch the record with a normal API call afterward. The starter keeps tokens in a browser session, so a listener has no token to call back with until you add server-side token storage.
+- **Expect duplicates and gaps.** Deduplicate on the event `id` (a ULID), and run an occasional API sync to catch anything missed.
+- **Clean up.** Hooks live in the Sandbox company after your Codespace is gone, so delete test hooks. A stopped Codespace (it sleeps after 30 minutes idle) cannot receive deliveries.
 
-Check deliveries with `GET /rest/v1.0/webhooks/hooks/{hook_id}/deliveries?company_id=...&filter[status]=failing`.
+Check deliveries with the list-deliveries endpoint in the Set Up Webhooks guide, filtering for `failing` ones.
 
 ## API calls exercised
 

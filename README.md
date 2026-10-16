@@ -1,6 +1,6 @@
 # Procore Custom App Starter
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tomjodeit/procore-custom-app-starter)
+[![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/tomjodeit/procore-custom-app-starter/generate)
 
 A quick start for creating a Procore custom app, connecting it to a Developer Sandbox, and verifying access to company and project data. The app uses an authorization-code flow, keeps credentials and access tokens on the server, and performs read-only API checks.
 
@@ -17,7 +17,7 @@ Use the Developer Portal recording alongside these steps:
 
 ## 2. Open in Codespaces
 
-1. Click **Open in GitHub Codespaces** above (or use **Use this template** to make your own copy first, then open a Codespace on that copy).
+1. Click **Use this template → Create a new repository** above to make your own copy (public or private). Use your copy for everything below, not this repository, so you can commit and push your changes.
 2. Add your credentials as **Codespaces secrets** so they survive if the Codespace is ever deleted and never end up in a commit. In GitHub go to **Settings → Codespaces → Secrets → New secret**, grant access to your repository, and add:
 
    | Secret | Value |
@@ -26,15 +26,16 @@ Use the Developer Portal recording alongside these steps:
    | `PROCORE_CLIENT_SECRET` | Sandbox Client Secret |
    | `SESSION_SECRET` | Any long random string (`openssl rand -hex 32`) |
 
-   Add secrets before creating the Codespace. If you add them afterward, rebuild it (**Command Palette → Codespaces: Rebuild Container**).
-3. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
-4. In the terminal:
+   Add secrets before creating the Codespace. The create page also prompts for these three values, so you can enter them there instead. If you add them afterward, rebuild the Codespace (**Command Palette → Codespaces: Rebuild Container**).
+3. In your copy, select **Code → Codespaces → Create codespace on main**.
+4. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
+5. In the terminal:
 
    ```sh
    npm start
    ```
 
-5. The forwarded port opens a preview. Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. The dashboard loads companies; choose one to fetch its projects. The success panel appears after a successful Sandbox API read.
+6. The forwarded port opens a preview. Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. The dashboard loads companies; choose one to fetch its projects. The success panel appears after a successful Sandbox API read.
 
 The app uses in-memory sessions for workshop development; restarting the server clears connected sessions, so just click **Connect to Sandbox** again.
 

@@ -37,6 +37,10 @@ Use the Developer Portal recording alongside these steps:
    <details>
    <summary>Started a Codespace another way, or need to change the secrets?</summary>
 
+   **Don't see the Recommended secrets boxes?** GitHub only asks for secrets you have not created before. If you have `PROCORE_CLIENT_ID` or `PROCORE_CLIENT_SECRET` from an earlier project, open **Settings → Codespaces → Secrets**, edit each one, and make sure your new repository is listed under **Repository access**, then rebuild the Codespace.
+
+   **Secrets not loading?** When they are missing, the terminal prints a `WARNING` when you run `npm start`, and **Connect to Sandbox** explains the problem instead of sending you to Procore with placeholder values.
+
    The quick **Code → Codespaces → Create codespace on main** button in your copy does not show the secrets prompt. Either use **Code → Codespaces → ⋯ → New with options** to get the same page as the button above, or add the two secrets in GitHub under **Settings → Codespaces → Secrets → New secret** (grant access to your copy). Secrets added after a Codespace exists are not loaded until you rebuild it: **Command Palette → Codespaces: Rebuild Container**.
    </details>
 2. The container installs dependencies and creates a `.env` from `.env.example` automatically. Secrets take precedence over `.env`, so you do not need to edit it. Never commit or share `.env`.
@@ -45,6 +49,8 @@ Use the Developer Portal recording alongside these steps:
    ```sh
    npm start
    ```
+
+   The terminal prints the URL to open. You can also Cmd/Ctrl-click the `localhost:3001` link.
 
 4. The app opens in a new browser tab. (If it opens in the editor's preview or does not open, go to the **Ports** tab and click the globe icon next to port 3001.) Select **Connect to Sandbox**; Procore opens in a separate popup window, while the inline code field opens automatically in the dashboard. Sign in and authorize, copy the displayed code, return focus to the dashboard, paste the code, and submit. The dashboard loads companies; choose one to fetch its projects. The success panel appears after a successful Sandbox API read.
 

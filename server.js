@@ -8,6 +8,7 @@ const session = require('express-session');
 const { OPENAPI_URL, searchOperations } = require('./lib/procore-oas');
 const { createEventLog, createWebhookHandler } = require('./lib/webhook');
 const webhookHooks = require('./lib/webhook-hooks');
+const { credentialProblem } = require('./lib/credentials');
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -136,8 +137,8 @@ async function procoreRequest(req, endpoint, { companyId, method = 'GET', body }
 
 async function exchangeAuthorizationCode(req, res, code, redirectUri) {
   const jsonResponse = req.get('accept')?.includes('application/json');
-  if (!process.env.PROCORE_CLIENT_ID || !process.env.PROCORE_CLIENT_SECRET) {
-    const message = 'Set the Procore client ID and secret in your .env file.';
+  if (credentialProblem()) {
+    const message = credentialProblem();
     return jsonResponse ? res.status(500).json({ error: message }) : res.status(500).send(message);
   }
 
@@ -229,8 +230,8 @@ app.get('/api/catalog/search', async (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-  if (!process.env.PROCORE_CLIENT_ID) {
-    return res.status(500).send('Set PROCORE_CLIENT_ID in your .env file first.');
+  if (credentialProblem()) {
+    return res.status(500).send(credentialProblem());
   }
 
   const redirectUri = getRedirectUri(req);
@@ -406,6 +407,12 @@ app.delete('/api/webhook-hook', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Local app listening at http://localhost:${port}`);
+  const { CODESPACE_NAME, GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN } = process.env;
+  if (CODESPACE_NAME && GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
+    console.log(`Open the app in your browser: https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`);
+  }
+  const problem = credentialProblem();
+  if (problem) console.warn(`\nWARNING: ${problem}\n`);
 });
 
 if (webhookSecret) {

@@ -85,18 +85,28 @@ app.use(session({
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-async function getProcoreData(req, endpoint, headers = {}) {
+// The one place that calls the Procore API. Every API route should go through it so the
+// required headers are never forgotten.
+//   companyId  Required for every endpoint except GET /rest/v1.0/me and GET /rest/v1.0/companies.
+//              Sent as the Procore-Company-Id header (and still pass company_id in the path/query/body
+//              if the endpoint asks for it).
+//   method     HTTP method, default GET.
+//   body       Plain object, sent as JSON.
+async function procoreRequest(req, endpoint, { companyId, method = 'GET', body } = {}) {
   const accessToken = req.session.procoreToken?.access_token;
   if (!accessToken) {
     return { status: 401, data: { error: 'Connect to the Procore Sandbox first.' } };
   }
 
   const response = await fetch(new URL(endpoint, apiUrl), {
+    method,
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${accessToken}`,
-      ...headers
-    }
+      ...(companyId ? { 'Procore-Company-Id': String(companyId) } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {})
+    },
+    body: body ? JSON.stringify(body) : undefined
   });
   const responseText = await response.text();
   let data;
@@ -105,7 +115,21 @@ async function getProcoreData(req, endpoint, headers = {}) {
   } catch {
     data = { error: 'Procore returned an unexpected response.' };
   }
-  return { status: response.status, data };
+
+  // Pagination (Link, Total, Per-Page) and rate limit (X-Rate-Limit-*) headers come back on every response.
+  // 429 means wait until rateLimit.reset (Unix seconds) before retrying; 503 means wait Retry-After seconds.
+  const header = name => response.headers.get(name);
+  return {
+    status: response.status,
+    data,
+    pagination: { link: header('Link'), total: header('Total'), perPage: header('Per-Page') },
+    rateLimit: {
+      limit: header('X-Rate-Limit-Limit'),
+      remaining: header('X-Rate-Limit-Remaining'),
+      reset: header('X-Rate-Limit-Reset'),
+      retryAfter: header('Retry-After')
+    }
+  };
 }
 
 async function exchangeAuthorizationCode(req, res, code, redirectUri) {
@@ -163,7 +187,7 @@ app.get('/api/repository', (req, res) => {
 
 app.get('/api/companies', async (req, res) => {
   try {
-    const result = await getProcoreData(req, '/rest/v1.0/companies');
+    const result = await procoreRequest(req, '/rest/v1.0/companies');
     res.status(result.status).json(result.data);
   } catch (error) {
     console.error('Procore companies request failed:', error);
@@ -179,7 +203,7 @@ app.get('/api/projects', async (req, res) => {
 
   try {
     const endpoint = `/rest/v1.1/projects?${new URLSearchParams({ company_id: companyId })}`;
-    const result = await getProcoreData(req, endpoint, { 'Procore-Company-Id': companyId });
+    const result = await procoreRequest(req, endpoint, { companyId });
     res.status(result.status).json(result.data);
   } catch (error) {
     console.error('Procore projects request failed:', error);
